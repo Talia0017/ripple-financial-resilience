@@ -18,6 +18,7 @@ id_ed25519*
 .ssh/
 .codex/
 .agents/
+.vercel/
 
 # Python environments, bytecode, and caches
 .venv/

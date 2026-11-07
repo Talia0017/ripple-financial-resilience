@@ -5,6 +5,7 @@ participants of **Sheridan Datathon 2026 — Tangerine Track**. Credit belongs t
 the event organizers and the track's data providers. The repository does not
 grant rights to the data.
 
+The project owner has confirmed restricted access only, with no public display.
 No public redistribution license was supplied with the local files, so the raw
 banking datasets are intentionally excluded from Git. Do not attach CSVs or
 customer-level exports to issues, pull requests or public demo artifacts.

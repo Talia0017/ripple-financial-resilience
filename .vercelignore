@@ -1,0 +1,11 @@
+# CLI uploads: deny everything except the container configuration and app code.
+/*
+!Dockerfile
+!.dockerignore
+!vercel.json
+!financial_resilience/
+/financial_resilience/*
+!financial_resilience/requirements.txt
+!financial_resilience/app.py
+!financial_resilience/data_access.py
+!financial_resilience/engine.py

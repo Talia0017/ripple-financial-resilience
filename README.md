@@ -34,6 +34,19 @@ emergency savings goals and backup plans are planned for the next phase.
 
 There is no database, authentication system, paid API or separate backend service.
 
+## Vercel deployment preparation
+
+The existing app remains Python/Streamlit. A root Dockerfile and Vercel Container
+configuration let Vercel run the existing server without a React/Next.js rewrite.
+See [the Chinese Vercel setup guide](VERCEL_DEPLOYMENT.md) for exact settings,
+current verification limits and the restricted-data requirements.
+
+The configuration is prepared; a container build and live Vercel deployment have
+not been verified. **Official banking data is restricted-access and is not in the
+deployment package.** A deployment made from this repository alone will show
+missing-data guidance rather than real accounts. Authorized private data access
+and access protection must be implemented before a real-data online release.
+
 ## Setup and run
 
 You need Python 3.9 or newer. From a terminal in the directory where you keep projects:
@@ -91,8 +104,9 @@ The project uses the anonymized banking datasets supplied to participants for
 Attribution is to the event organizers and the Tangerine Track data providers;
 Ripple does not claim ownership of the datasets.
 
-**The datasets are not included in this repository.** No license or written
-permission granting public redistribution was supplied with the local files.
+**The datasets are not included in this repository.** The project owner has
+confirmed that the official data permits restricted access, not public display.
+No permission granting public redistribution was supplied with the local files.
 Raw banking data, derived customer exports and local verification reports are
 excluded from Git. Anonymization alone is not treated as redistribution permission.
 
@@ -185,5 +199,5 @@ call an AI API or send customer records to an AI service at runtime.
 Implement personalized emergency savings goals and backup plans using each
 account's figures, then improve the UX/UI and visual explanation. Any future
 time-based projection will be presented separately from the official static
-runway calculation. This repository contains source code; no hosted deployment
-is configured by this upload.
+runway calculation. Container deployment configuration is included, but no live
+Vercel deployment or hosted real-data access has been verified.

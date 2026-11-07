@@ -1,0 +1,9 @@
+# Only these files may enter the Docker build context.
+**
+!Dockerfile
+!.dockerignore
+!financial_resilience/
+!financial_resilience/requirements.txt
+!financial_resilience/app.py
+!financial_resilience/data_access.py
+!financial_resilience/engine.py
