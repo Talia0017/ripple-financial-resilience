@@ -20,7 +20,7 @@ COLUMNS = [field.name for field in fields(Customer)]
 def build_profiles(data_dir: Path, expected_accounts=None):
     bundle = load_data(data_dir)
     if bundle.loans is None or bundle.warnings:
-        raise DataError("完整公开导出需要有效的两份官方 CSV，请先解决数据读取警告。")
+        raise DataError("A complete public export requires both valid official CSV files. Resolve the data-loading warnings first.")
     grouped_loans = dict(tuple(bundle.loans.groupby("account_id", sort=False)))
     no_loans = bundle.loans.iloc[:0]
     records = []
@@ -28,7 +28,7 @@ def build_profiles(data_dir: Path, expected_accounts=None):
         customer = calculate_customer(monthly, grouped_loans.get(account_id, no_loans), account_id)
         records.append([getattr(customer, column) for column in COLUMNS])
     if expected_accounts is not None and len(records) != expected_accounts:
-        raise DataError(f"预期 {expected_accounts} 个账户，实际有 {len(records)} 个；未发布不完整数据。")
+        raise DataError(f"Expected {expected_accounts} accounts but found {len(records)}. Incomplete data was not published.")
     return {
         "schema_version": 1,
         "dataset": {

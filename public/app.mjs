@@ -2,7 +2,7 @@ import {decodeProfiles, simulate} from "./engine.mjs";
 
 const $ = id => document.getElementById(id);
 const amount = new Intl.NumberFormat("en-CA", {minimumFractionDigits: 2, maximumFractionDigits: 2});
-const money = value => value === null ? "无法计算" : amount.format(value);
+const money = value => value === null ? "Unavailable" : amount.format(value);
 let profiles = new Map();
 let selected = null;
 let loadGeneration = 0;
@@ -36,9 +36,9 @@ function resetScenario() {
 
 function numberInput(id, label) {
   const input = $(id);
-  if (!input.value.trim() || !input.checkValidity()) throw new Error(`请为${label}输入有效的非负数字。`);
+  if (!input.value.trim() || !input.checkValidity()) throw new Error(`Enter a valid, non-negative number for ${label}.`);
   const value = Number(input.value);
-  if (!Number.isFinite(value) || value < 0) throw new Error(`请为${label}输入有效的非负数字。`);
+  if (!Number.isFinite(value) || value < 0) throw new Error(`Enter a valid, non-negative number for ${label}.`);
   return value;
 }
 
@@ -49,19 +49,19 @@ function updateComparison() {
     const before = simulate(selected);
     const after = simulate(selected, {
       job_loss: $("job-loss").checked,
-      ei_rate: $("job-loss").checked ? numberInput("ei-rate", "EI 替代率") / 100 : .55,
+      ei_rate: $("job-loss").checked ? numberInput("ei-rate", "EI replacement rate") / 100 : .55,
       higher_bills: $("higher-bills").checked,
-      bill_increase_rate: $("higher-bills").checked ? numberInput("bill-rate", "账单涨幅") / 100 : .15,
+      bill_increase_rate: $("higher-bills").checked ? numberInput("bill-rate", "bill increase") / 100 : .15,
       emergency_repair: $("emergency-repair").checked,
-      repair_cost: $("emergency-repair").checked ? numberInput("repair-cost", "维修费用") : 0,
+      repair_cost: $("emergency-repair").checked ? numberInput("repair-cost", "repair cost") : 0,
     });
     const rows = [
-      ["月收入 · Income", money(before.income), money(after.income)],
-      ["月支出 · Spending（已含贷款付款）", money(before.spending), money(after.spending)],
-      ["一次性费用 · One-off costs", money(before.one_off_costs), money(after.one_off_costs)],
-      ["剩余缓冲金 · Buffer left", money(before.buffer_left), money(after.buffer_left)],
-      ["每月资金缺口 · Monthly shortfall", money(before.monthly_shortfall), money(after.monthly_shortfall)],
-      ["财务续航 · Runway", before.runway_label, after.runway_label],
+      ["Monthly income", money(before.income), money(after.income)],
+      ["Monthly spending (includes loan payments)", money(before.spending), money(after.spending)],
+      ["One-off costs", money(before.one_off_costs), money(after.one_off_costs)],
+      ["Remaining buffer", money(before.buffer_left), money(after.buffer_left)],
+      ["Monthly shortfall", money(before.monthly_shortfall), money(after.monthly_shortfall)],
+      ["Financial runway", before.runway_label, after.runway_label],
     ];
     const fragment = document.createDocumentFragment();
     for (const row of rows) {
@@ -81,18 +81,18 @@ function updateComparison() {
     explanation.className = "notice";
     if (after.buffer_left <= 0) {
       explanation.classList.add("warning");
-      explanation.textContent = "缓冲金已耗尽或为负。按官方规则，财务续航为 0 个月，即使当前收入足以支付月度开支。";
+      explanation.textContent = "Your buffer is depleted or negative. Under the official rules, runway is 0 months, even if current income covers monthly spending.";
     } else if (after.no_shortfall) {
-      explanation.textContent = "No shortfall (120+)：在当前固定参数下，收入足以覆盖每月支出。这是官方比赛标签，不表示未来 120 个月都有保障。";
+      explanation.textContent = "No shortfall (120+): income covers monthly spending under the current assumptions. This judging label does not guarantee financial security for the next 120 months.";
     } else {
-      explanation.textContent = `当前每月资金缺口为 ${money(after.monthly_shortfall)}，剩余缓冲金为 ${money(after.buffer_left)}。${after.capped ? "续航结果已按官方规则限制在 120 个月。" : "以固定参数相除，得到上方的简化续航月数。"}`;
+      explanation.textContent = `The monthly shortfall is ${money(after.monthly_shortfall)}, with ${money(after.buffer_left)} remaining in the buffer. ${after.capped ? "Runway is capped at 120 months under the official rules." : "Dividing the buffer by the shortfall gives the simplified runway shown above."}`;
     }
     message($("scenario-error"), "");
     $("comparison-body").closest("section").hidden = false;
   } catch (error) {
     message($("scenario-error"), error.message);
     $("comparison-body").closest("section").hidden = true;
-    $("baseline-runway").textContent = "无法计算";
+    $("baseline-runway").textContent = "Unavailable";
     // Keep the valid baseline visible if only a shock parameter is invalid.
     try { $("baseline-runway").textContent = simulate(selected).runway_label; } catch { /* unavailable data explained above */ }
   }
@@ -102,7 +102,7 @@ function chooseAccount(accountId) {
   const profile = profiles.get(accountId.trim());
   if (!profile) {
     clearSelection();
-    message($("lookup-error"), "找不到这个账户 ID。请从可搜索的官方账户列表中选择，或点击随机选择。");
+    message($("lookup-error"), "Account not found. Choose an ID from the official account list, or select a random account.");
     return;
   }
   selected = profile;
@@ -110,14 +110,14 @@ function chooseAccount(accountId) {
   message($("lookup-error"), "");
   $("dashboard").hidden = false;
   $("empty-state").hidden = true;
-  $("account-history").textContent = `账户 ${profile.account_id} · ${profile.months} 个月\n${profile.first_month} 至 ${profile.last_month} · 缓冲金 ${profile.buffer_valid_rows}/${profile.buffer_rows} 行有效`;
+  $("account-history").textContent = `Account ${profile.account_id} · ${profile.months} months\n${profile.first_month} to ${profile.last_month} · Buffer: ${profile.buffer_valid_rows}/${profile.buffer_rows} valid rows`;
   const definitions = [
-    ["I · 典型月收入", "income", "全部已有月份 money_in 的中位数。"],
-    ["S · 典型月支出", "spending", "money_out 的中位数，已包含贷款付款。"],
-    ["F · 典型固定开支", "fixed_costs", "先逐月相加家庭账单、保险与贷款付款，再取中位数。"],
-    ["B · 储蓄缓冲金", "buffer", "最后六行平均日余额的平均值，可能为负。"],
-    ["H · 家庭账单", "household_bills", "household_bills 的中位数。"],
-    ["P · 贷款月供", "loan_payment", "2025 年底 C/D 状态贷款月供，不额外加入 S。"],
+    ["I · Typical monthly income", "income", "Median monthly money coming in."],
+    ["S · Typical monthly spending", "spending", "Median monthly money going out, including loan payments."],
+    ["F · Typical fixed costs", "fixed_costs", "Median of each month's combined bills, insurance and loan payments."],
+    ["B · Savings buffer", "buffer", "Average of the last six monthly average balances. May be negative."],
+    ["H · Household bills", "household_bills", "Median monthly household bills."],
+    ["P · Loan payment", "loan_payment", "Payments for loans running at year-end 2025. Already included in spending."],
   ];
   const cards = document.createDocumentFragment();
   for (const [label, key, definition] of definitions) {
@@ -154,11 +154,11 @@ async function loadProfiles() {
   $("load-error").hidden = true;
   $("load-error-text").textContent = "";
   $("retry-load").onclick = loadProfiles;
-  $("data-status").textContent = "正在加载官方账户资料…";
+  $("data-status").textContent = "Loading official account profiles…";
   for (const id of ["account-id", "lookup-button", "random-account"]) $(id).disabled = true;
   try {
     const response = await fetch(new URL("./data/profiles.json", import.meta.url), {cache: "no-cache"});
-    if (!response.ok) throw new Error(`账户资料请求失败（HTTP ${response.status}）。`);
+    if (!response.ok) throw new Error(`Account data could not be loaded (HTTP ${response.status}).`);
     const payload = await response.json();
     const loaded = decodeProfiles(payload);
     if (generation !== loadGeneration) return;
@@ -171,17 +171,17 @@ async function loadProfiles() {
     }
     $("account-options").replaceChildren(options);
     for (const id of ["account-id", "lookup-button", "random-account"]) $(id).disabled = false;
-    $("account-id").placeholder = "输入账户 ID，或展开列表搜索";
-    $("data-status").textContent = `${profiles.size.toLocaleString("en-CA")} 个官方账户 · 已就绪`;
-    $("dataset-detail").textContent = `${payload.dataset.monthly_rows.toLocaleString("en-CA")} 条月度记录、${payload.dataset.loan_rows.toLocaleString("en-CA")} 条贷款记录；覆盖 ${payload.dataset.first_month} 至 ${payload.dataset.last_month}。已加载全部 ${profiles.size.toLocaleString("en-CA")} 个账户。`;
+    $("account-id").placeholder = "Enter an account ID or search the list";
+    $("data-status").textContent = `${profiles.size.toLocaleString("en-CA")} official accounts · Ready`;
+    $("dataset-detail").textContent = `${payload.dataset.monthly_rows.toLocaleString("en-CA")} monthly records and ${payload.dataset.loan_rows.toLocaleString("en-CA")} loan records, covering ${payload.dataset.first_month} to ${payload.dataset.last_month}. All ${profiles.size.toLocaleString("en-CA")} accounts are loaded.`;
   } catch (error) {
     if (generation !== loadGeneration) return;
     profiles = new Map();
     $("account-options").replaceChildren();
     for (const id of ["account-id", "lookup-button", "random-account"]) $(id).disabled = true;
-    $("data-status").textContent = "账户资料未加载";
+    $("data-status").textContent = "Account data unavailable";
     $("load-error").hidden = false;
-    $("load-error-text").textContent = `${error.message} 请检查网络后重新加载；网站不会用演示账户替代缺失数据。`;
+    $("load-error-text").textContent = `${error.message} Check your connection and try again. Sample accounts are never used to replace missing data.`;
   }
 }
 

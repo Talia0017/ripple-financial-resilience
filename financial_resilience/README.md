@@ -1,142 +1,177 @@
-# Ripple — Financial Resilience Engine · 第一阶段
+# Ripple — Local Financial Resilience Engine
 
 **Sheridan Datathon 2026 — Tangerine Track · Resilience Rewired**
 
-仓库首页、跨平台安装步骤、数据署名和 AI 辅助开发声明见[根目录 README](../README.md)。
+See the [root README](../README.md) for the public website, cross-platform setup,
+dataset attribution and AI-assisted development disclosure. The public website
+uses precomputed profiles for all 4,500 official accounts; see the
+[Vercel deployment guide](../VERCEL_DEPLOYMENT.md) for its settings.
 
-公开网站已改为“Python 预计算全部账户＋静态网页”，具体设置见[Vercel 部署说明](../VERCEL_DEPLOYMENT.md)。
-主办方已允许挑战数据公开使用；4,500 个账户摘要已随网页打包，不依赖本地 CSV。
-本说明下方介绍的是保留的 Streamlit 本地版，仍可查看原始月度记录。
+This directory contains the preserved **local Streamlit application**. It reads
+the official CSVs, displays financial metrics, supports combined shocks, and
+lets you inspect the original monthly records. It uses Python, Pandas and
+Streamlit, with no database, authentication or paid API.
 
-这个本地应用会读取比赛 CSV，帮助你了解一个账户的收入、支出、现金缓冲，以及发生财务冲击后缓冲金能支撑多久。使用 Python、Pandas 和 Streamlit；没有数据库、登录或付费 API。
+## Open the local app
 
-## 你现在怎么打开
+On macOS:
 
-启动应用后，点击 **http://127.0.0.1:8501**，或把这个地址复制到 Chrome 地址栏。
+1. Open this repository's `financial_resilience` directory in Finder.
+2. Double-click **start_ripple.command**. It opens a Terminal window and starts
+   the app without requiring you to enter a command.
+3. If the browser does not open automatically, visit http://localhost:8501.
+4. Keep the Terminal window open while using the app. Press **Control + C** in
+   that window when you want to stop it.
 
-以后需要重新启动时：
+If the window reports `Port 8501 is already in use`, check the address above;
+the app may already be running. The launcher requires Python 3.9 or newer and
+creates a project-local `.venv` if needed. Installing dependencies requires a
+network connection. It does not install Python itself.
 
-1. 在 Finder 中打开 `datathon 2026` → `financial_resilience`。
-2. 双击 **启动应用.command**。它会打开一个终端窗口并启动应用，不需要手动输入命令。
-3. 浏览器应自动打开；若没有自动打开，请访问 http://localhost:8501。
-4. 使用期间保留启动窗口。停止时，在该窗口按 **Control + C**。
+You can also start the app from the repository root:
 
-如果提示 `Port 8501 is already in use`，请先访问上面的地址；应用可能已经在运行。
-如果 macOS 提示没有权限执行，确认打开的是本文件夹中已设为可执行的 `.command` 文件。
-本次已装好独立运行环境；如果以后删掉 `.venv`，启动器会尝试重建它并联网安装依赖。
-若新电脑没有 Python 3.9 或更新版本，启动器不能独立安装 Python。
-
-## 怎么试用
-
-1. 点击“账户 ID”，输入部分数字，选择列表中的真实账户。
-2. 查看六项财务指标及“基准财务续航”。金额沿用原始数据单位，未推定为加元。
-3. 勾选“失业”，调整 EI 百分比，查看冲击后收入和续航。
-4. 同时勾选“家庭账单上涨”和“紧急维修”，修改涨幅和维修费用。
-5. 查看“冲击前 / 后对比”：一次性维修费只减少缓冲金，不增加每月支出。
-6. 把维修费改为大于缓冲金的金额；续航应为 **0.0 个月**，剩余缓冲金可以为负。
-7. 点击“重置情景”，三个冲击关闭，默认参数恢复为 **55%、15%、维修费=S**。
-8. 换一个账户，确认情景也已重置，维修默认值变为新账户的 S。
-
-找不到的账户不会被加入列表，也不会生成虚构记录。可以展开底部的原始月度表核对计算。
-
-## 数据位置
-
-应用直接读取本项目旁边原有的 `data` 文件夹，不复制或修改原始数据：
-
-```text
-datathon 2026/
-├── data/
-│   ├── monthly_summary.csv
-│   ├── loans.csv
-│   └── 其他原有比赛文件（本阶段未使用）
-└── financial_resilience/
-    ├── app.py                     单页界面
-    ├── data_access.py             CSV 读取与校验
-    ├── engine.py                  财务计算与模拟
-    ├── 启动应用.command            Mac 双击启动器
-    ├── requirements.txt           两个直接依赖
-    ├── tests/                     仅供测试的合成数据与测试
-    ├── verify_real_data.py        真实数据独立核对工具
-    ├── verification_report.json   最近一次真实数据核对结果
-    └── .venv/                     项目独立 Python 环境
+```sh
+financial_resilience/.venv/bin/python -m streamlit run financial_resilience/app.py --server.address 127.0.0.1 --server.port 8501 --server.showEmailPrompt false --browser.gatherUsageStats false
 ```
 
-如果缺少文件，请将官方文件原名放到 **`datathon 2026/data/monthly_summary.csv`** 和 **`datathon 2026/data/loans.csv`**。
-月度文件缺失时页面停止并说明位置；贷款文件缺失或损坏时，P 显示“无法计算”，其他计算仍可使用。
-没有贷款记录的账户，P 为 0；这与“缺少贷款文件，无法确认”不同。
-开发者可用环境变量 `RESILIENCE_DATA_DIR` 指向其他文件夹；应用不会自动切换到测试客户。
+See the root README for environment creation and Windows executable paths.
 
-## 计算规则
+## Try the features
 
-| 指标 | 使用的规则 |
-|---|---|
-| I · 典型月收入 | 全部已有月份 `money_in` 的中位数 |
-| S · 典型月支出 | 全部已有月份 `money_out` 的中位数 |
-| F · 典型固定开支 | 每月先将 `household_bills + insurance + loan_payments` 相加，再取中位数 |
-| B · 缓冲金 | 按月份排序，最后六行 `avg_daily_balance` 的平均值 |
-| H · 家庭账单 | 全部已有月份 `household_bills` 的中位数 |
-| P · 贷款月供 | 截至 2025-12-31 已开始、状态为 C/D 的贷款 `monthly_payment`；多笔时求和 |
+1. Search for an official **Account ID** and select it from the list.
+2. Review the six financial metrics and **Baseline financial runway**.
+3. Enable **Job loss**, adjust the EI replacement rate, and observe the results.
+4. Combine **Higher household bills** and **Emergency repair**; change the bill
+   increase and repair amount.
+5. Check the **Before / after comparison**. A repair reduces the buffer once;
+   it is not added to monthly spending.
+6. Set the repair cost above the buffer. Runway should be **0.0 months**, and the
+   remaining buffer may be negative.
+7. Select **Reset scenario**. All shocks turn off and the defaults return to
+   **55% EI, 15% bill increase and repair cost = S**.
+8. Switch accounts. The scenario resets and the repair default uses the new S.
 
-贷款状态按官方文件的 2025 年底快照解释。A/B 视为已结束；不再根据期限自行推断状态。
-`money_out` 已包含贷款付款，**绝不会把 P 或 F 再加到 S 上**。
+Unknown accounts are not fabricated. Expand the monthly-records section to
+inspect the selected account's source figures. Amounts retain the original
+dataset units, without assuming or converting to CAD.
+
+## Data and project files
 
 ```text
-失业开启：income_after = I × EI rate；否则 = I
-账单上涨开启：spending_after = S + H × increase；否则 = S
-维修开启：one_off_costs = repair_cost；否则 = 0
+repository/
+├── data/
+│   ├── monthly_summary.csv     # Original official data, local only for size
+│   ├── loans.csv
+│   └── README.md
+└── financial_resilience/
+    ├── app.py                 # Local Streamlit interface
+    ├── data_access.py         # CSV loading and validation
+    ├── engine.py              # Official calculations and shock simulation
+    ├── start_ripple.command   # macOS launcher
+    ├── export_profiles.py     # Public profile generation
+    ├── requirements.txt
+    ├── tests/                 # Clearly identified synthetic fixtures
+    ├── verify_real_data.py    # Independent CSV/statistics checks
+    ├── verify_web_profiles.py # Browser/Python calculation comparison
+    ├── verification_report.json # Local aggregate verification output
+    └── .venv/                 # Project-local Python environment
+```
+
+Place the official files in the root `data/` directory, or set
+`RESILIENCE_DATA_DIR` to their directory. The app reads without modifying them.
+Missing monthly data stops the page with setup guidance. Missing or invalid
+loan data leaves P **Unavailable** while other supported calculations remain
+usable. No matching loan in a complete file means P = 0; that is different from
+an unavailable file.
+
+The owner reported organizer confirmation on 2026-11-07 that the challenge data
+may be used publicly and contains no real customer records. The public website
+ships derived profiles; raw CSVs remain excluded from Git to keep it small.
+See [dataset attribution and access](../data/README.md).
+
+## Official calculation rules
+
+| Metric | Definition |
+|---|---|
+| I · Typical monthly income | Median money_in across all available months |
+| S · Typical monthly spending | Median money_out |
+| F · Typical fixed costs | Add household_bills + insurance + loan_payments within each month, then take the median of the totals |
+| B · Savings buffer | Mean avg_daily_balance across the last six rows sorted by month |
+| H · Household bills | Median household_bills |
+| P · Loan payment | Sum monthly_payment for loans started by 2025-12-31 with status C/D in the supplied year-end snapshot |
+
+A/B loans contribute zero. Loan status is not recalculated from duration.
+**money_out already includes loan payments. Never add P or F to S again.**
+
+```text
+Job loss enabled:     income_after = I × EI rate; otherwise I
+Higher bills enabled: spending_after = S + H × increase; otherwise S
+Repair enabled:       one_off_costs = repair_cost; otherwise 0
 
 buffer_left = B − one_off_costs
 gap = spending_after − income_after
 
-buffer_left <= 0：runway = 0
-buffer_left > 0 且 gap <= 0：No shortfall (120+)
-其他：runway = min(buffer_left / gap, 120)
+buffer_left <= 0                 → runway = 0
+buffer_left > 0 and gap <= 0      → No shortfall (120+)
+otherwise                       → min(buffer_left / gap, 120)
 ```
 
-内部使用未四舍五入的计算值，金额显示两位小数，数值续航显示一位小数。
-表格中的“每月资金缺口”显示 `max(gap, 0)`，收入足以覆盖支出时为 0。
-“No shortfall (120+)”是官方比赛标签，不表示未来 120 个月一定安全。
+Calculations use unrounded values. Amounts are displayed to two decimal places;
+numeric runway is displayed to one. The table shows `max(gap, 0)` as monthly
+shortfall, while the runway formula uses the original signed gap.
+“No shortfall (120+)” is a judging label, not a guarantee of future security.
 
-## 缺失与异常数据
+## Missing and unusual data
 
-- 缺失金额、非数字和无穷值均保持为缺失，不补成 0；统计仅使用有效金额，并提示使用限制。
-- F 只使用同月三个组成金额均有效的行，不把部分金额相加成“完整”固定开支。
-- B 先选最后六行再计算平均；窗口中缺失的余额不使用更早月份补替。不足六个月会提示。
-- 如果 I、S 或 B 完全没有有效值，则停止模拟。H 不可用时只禁用账单冲击。
-- 保留负余额；缓冲金为零或负数时，官方续航为 0。
-- 无效账户键或月份的行会排除并提示；月份存在间隔也会提示。重复账户＋月份会停止加载，避免静默计算错误。
-- 重复贷款记录会让贷款数据标记为不可用；相关贷款状态、起始日或月供无效时 P 保持未知。
+- Missing amounts, invalid text and infinite values stay unavailable rather
+  than becoming zero. Statistics use valid values and disclose limitations.
+- F uses a month only if all three cost components are valid.
+- B selects the last six rows first. Missing values inside that window are not
+  replaced with older rows. Fewer than six available months are disclosed.
+- Missing I, S or B prevents simulation. Missing H disables only the bill shock.
+- Negative balances are preserved. A zero or negative buffer gives zero runway.
+- Invalid account/month keys are excluded with a warning. Gaps in history are
+  disclosed; duplicate account/month rows stop loading.
+- Duplicate loan records make loan data unavailable. Missing or invalid status,
+  start date or payment on a relevant loan leaves P unknown.
 
-## 已经验证的内容
+## Tests and verification
 
-2026-11-07，在本机 Python 3.9.6、Pandas 2.3.3、Streamlit 1.50.0 环境执行：
-
-- **45 项自动测试全部通过**，包括计算规则、缺失值、负余额、贷款匹配、未知账户、少于六个月、零缺口、超额维修费与页面交互。
-- 合成例子 I=3000、S=2500、B=5000、EI=55%：收入变为 1650，缺口为 850，续航 **5.9 个月**。
-- 官方月度表 **185,326 行、4,500 个账户**；贷款表 **682 行**，均成功读取。
-- 对全部账户，用独立的 Python `csv + statistics` 计算实现核对 **27,000 项指标**和 **36,000 次冲击组合**，结果一致。
-- 使用真实 CSV 运行 Streamlit AppTest，验证账户列表、概况、组合冲击和重置。它验证页面逻辑与控件状态，不替代浏览器视觉验收。
-- 本机 HTTP 健康检查返回 `ok`。浏览器自动检查因工具问题及 Chrome 正在被操作而未完成，实际画面仍需你按上面的步骤确认。
-
-测试中的客户全部是合成夹具，只存在于 `tests/` 的执行过程中，应用不会使用这些客户。
-原始数据没有被改写。核对报告只保存汇总检查数量，不保存逐账户财务结果。
-
-给后续开发者复测用的命令（在 `financial_resilience` 文件夹中运行）：
+From this directory:
 
 ```sh
 .venv/bin/python -m unittest discover -s tests -v
 .venv/bin/python verify_real_data.py
+.venv/bin/python verify_web_profiles.py
 ```
 
-## 当前边界与下一阶段
+Synthetic edge-case fixtures include I=3000, S=2500, B=5000 and EI=55%: income
+becomes 1650, the shortfall is 850, and runway is **5.9 months**.
 
-当前是官方静态简化模型，B 是历史平均余额的代理值，并非实时可用存款。EI 的 55% 是比赛默认参数，尚未核验实际资格、金额上限或发放期限；不能解释为 EI 会永久继续。本阶段没有逐月现金流预测。
+The official data includes 185,326 monthly rows, 4,500 accounts and 682 loans.
+The independent CSV/statistics check covers 27,000 account metrics and 36,000
+shock combinations. The browser/Python comparison covers 54,000 results,
+including numeric runway and its display labels.
 
-下一阶段先与你确认应急储蓄目标的规则和备用计划内容，再用每个账户的真实数字实现 **Make a Plan**。如增加 EI 限时发放的逐月预测，应与当前官方评分公式分开展示。之后依据你的 UX 决策调整信息层级与图表。
+Streamlit AppTest verifies widget state and calculations. It does not replace
+visual review in a browser. Verification reports save aggregate counts locally,
+not individual account exports. Synthetic test records are never app fallbacks.
 
-本项目使用 OpenAI Codex 辅助编写程序、测试和文档；产品与 UX/UI 决策由项目负责人主导。
-应用运行时不调用 AI API，也不会把客户记录发送给 AI 服务。
+## Model scope and next phase
 
-项目负责人于 2026-11-07 转达主办方确认：挑战数据可公开使用，不包含真实客户记录。
-公开网站使用已提交的账户摘要；原始 CSV 为控制体积继续保留在本地。详见[data/README.md](../data/README.md)。
-本地版与静态网站分别验证；GitHub 推送不代表 Vercel 已上线，需核对实际部署 URL。
+The official runway formula is a static simplified calculation, not a
+month-by-month cash-flow forecast. B is a historical balance proxy, not a live
+available deposit. The EI rate is a challenge assumption; eligibility, payment
+caps and duration have not been verified. EI must not be presented as indefinite.
+
+The next phase is personalized emergency savings goals and backup plans, followed
+by UX improvements directed by the project owner. Any time-based forecast must
+be presented separately from the official judging calculation.
+
+OpenAI Codex assisted with implementation, tests and documentation. The owner
+leads product and UX/UI decisions. The app does not call an AI API or send account
+records to an AI service at runtime. All project content is English; the owner's
+preferred language for direct Codex chat is Chinese.
+
+A successful GitHub push does not prove that Vercel is live. Check the actual
+website URL and data asset before reporting a verified deployment.

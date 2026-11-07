@@ -11,7 +11,7 @@ const payload = () => ({schema_version: 1, dataset: {account_count: 1, monthly_r
 test("required job-loss example produces 5.9 months", () => {
   const result = simulate(fixture, {job_loss: true});
   close(result.income, 1650); close(result.gap, 850); close(result.runway, 5000 / 850);
-  assert.equal(result.runway_label, "5.9 个月");
+  assert.equal(result.runway_label, "5.9 months");
 });
 test("bills affect H only and loan payments are not added twice", () => {
   assert.equal(simulate(fixture, {higher_bills: true}).spending, 2575);

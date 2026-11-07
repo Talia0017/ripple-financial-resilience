@@ -11,8 +11,8 @@ The challenge data does **not** contain real customer records. The project owner
 confirmed with the organizers that it may be used publicly, as reported on
 2026-11-07. Dataset attribution remains with the organizers and track providers.
 
-中文部署步骤：[VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md)。
-原有本地版说明：[financial_resilience/README.md](financial_resilience/README.md)。
+Deployment guide: [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md).
+Local application guide: [financial_resilience/README.md](financial_resilience/README.md).
 
 ## Architecture
 
@@ -125,7 +125,7 @@ To run the preserved local interface:
 financial_resilience/.venv/bin/python -m streamlit run financial_resilience/app.py --server.address 127.0.0.1 --server.port 8501 --server.showEmailPrompt false --browser.gatherUsageStats false
 ```
 
-On macOS you can also double-click `financial_resilience/启动应用.command`.
+On macOS you can also double-click `financial_resilience/start_ripple.command`.
 On Windows use `py` to create the environment and
 `financial_resilience\.venv\Scripts\python.exe` in place of the executable above.
 
@@ -203,3 +203,10 @@ reviewing and explaining the submitted work. Outputs are tested against the
 original engine and independently checked against the official challenge data.
 The website does not call an AI API or transmit account selections to an AI
 service at runtime.
+
+## Project language
+
+All interfaces, source comments, tests, generated messages, documentation and
+commit messages use English. Chinese is permitted only in direct Codex chat
+with the project owner. The language regression test checks project-owned files
+and the public profile asset for CJK ideographs.

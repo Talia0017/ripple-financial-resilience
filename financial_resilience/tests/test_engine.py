@@ -45,7 +45,7 @@ class CalculationTests(unittest.TestCase):
         self.assertAlmostEqual(result.income, 1650)
         self.assertAlmostEqual(result.gap, 850)
         self.assertAlmostEqual(result.runway, 5000 / 850)
-        self.assertEqual(result.runway_label, "5.9 个月")
+        self.assertEqual(result.runway_label, "5.9 months")
 
     def test_medians_not_means(self):
         rows = monthly_fixture(3)
@@ -72,7 +72,7 @@ class CalculationTests(unittest.TestCase):
         result = customer(monthly_fixture(2))
         self.assertEqual(result.buffer, 5000)
         self.assertEqual(result.buffer_rows, 2)
-        self.assertTrue(any("不足六个月" in warning for warning in result.warnings))
+        self.assertTrue(any("Fewer than six months" in warning for warning in result.warnings))
 
     def test_bill_increase_applies_to_h_only(self):
         result = simulate(customer(), Scenario(higher_bills=True))
@@ -153,7 +153,7 @@ class CalculationTests(unittest.TestCase):
         result = customer(rows)
         self.assertEqual(result.buffer, 30)
         self.assertEqual(result.buffer_valid_rows, 5)
-        self.assertTrue(any("未向更早月份补取" in warning for warning in result.warnings))
+        self.assertTrue(any("without using older rows" in warning for warning in result.warnings))
 
     def test_all_missing_critical_values_prevent_simulation(self):
         for field in ["money_in", "money_out", "avg_daily_balance"]:
@@ -270,7 +270,7 @@ class DataTests(unittest.TestCase):
 
     def test_month_gaps_disclosed(self):
         result = customer(monthly_fixture(3).drop(index=1))
-        self.assertTrue(any("时间缺口" in warning for warning in result.warnings))
+        self.assertTrue(any("gaps in the monthly history" in warning for warning in result.warnings))
 
     def test_invalid_numeric_values_are_missing(self):
         rows = monthly_fixture(3)

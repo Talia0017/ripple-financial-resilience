@@ -1,7 +1,18 @@
 # Ripple workspace instructions
 
-Communicate with the owner in simple Chinese. Preserve the official calculations
-and existing work. This is Sheridan Datathon 2026 — Tangerine Track.
+Use simple Chinese only for direct Codex chat with the owner. All project
+content uses English. Preserve the official calculations and existing work.
+This is Sheridan Datathon 2026 — Tangerine Track.
+
+## Project-wide language policy
+
+All project content must use English: public and local interfaces, labels,
+financial explanations, errors and warnings, source comments, docstrings, tests,
+developer messages, generated reports, documentation and Git commit messages.
+Chinese is allowed only in direct Codex chat with the owner. Apply this rule to
+all future changes. Keep financial calculations, API fields, data processing and
+layout unchanged during language-only updates. Preserve identifiers and paths
+unless an English-only rename is necessary and references are updated.
 
 ## Authorized Git workflow
 

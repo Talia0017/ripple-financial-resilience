@@ -57,8 +57,8 @@ class Result:
     def runway_label(self) -> str:
         if self.no_shortfall:
             return "No shortfall (120+)"
-        suffix = "（上限）" if self.capped else ""
-        return f"{self.runway:.1f} 个月{suffix}"
+        suffix = " (cap)" if self.capped else ""
+        return f"{self.runway:.1f} months{suffix}"
 
 
 def _number(value) -> Optional[float]:
@@ -78,33 +78,33 @@ def calculate_customer(monthly: pd.DataFrame, loans: Optional[pd.DataFrame], acc
     account_id = str(account_id).strip()
     rows = monthly.loc[monthly["account_id"] == account_id].sort_values("month")
     if rows.empty:
-        raise CalculationError(f"找不到账户 {account_id}。请从真实账户列表中选择。")
+        raise CalculationError(f"Account {account_id} was not found. Choose an account from the official dataset.")
     warnings = []
     for field in ("money_in", "money_out", "household_bills", "insurance", "loan_payments"):
         count = int(rows[field].isna().sum())
         if count:
-            warnings.append(f"{field} 有 {count} 个月缺失或不是有效数字；相关中位数只使用有效月份，未补成 0。")
+            warnings.append(f"{field} is missing or invalid in {count} months. Related medians use valid months only; missing values are not replaced with zero.")
 
     # A fixed-cost row is valid only if all three components are present.
     fixed = rows[["household_bills", "insurance", "loan_payments"]].sum(axis=1, min_count=3)
     recent = rows.tail(6)
     valid_buffer = recent["avg_daily_balance"].dropna()
     if len(recent) < 6:
-        warnings.append(f"账户不足六个月：缓冲金使用现有 {len(recent)} 个月，结果可能不稳定。")
+        warnings.append(f"Fewer than six months are available. The buffer uses the available {len(recent)} months and may be less representative.")
     if len(valid_buffer) != len(recent):
         warnings.append(
-            f"最近 {len(recent)} 个月的 avg_daily_balance 中只有 {len(valid_buffer)} 个有效值；"
-            "缓冲金只对这些值取平均，未向更早月份补取。"
+            f"Only {len(valid_buffer)} of the last {len(recent)} avg_daily_balance values are valid. "
+            "The buffer averages these values without using older rows outside the window."
         )
     if len(rows) > 1:
         periods = rows["month"].dt.to_period("M")
         expected = periods.iloc[-1].ordinal - periods.iloc[0].ordinal + 1
         if expected != len(rows):
-            warnings.append("月度记录存在时间缺口；按官方规则使用已有月度行，不补造缺失月份。")
+            warnings.append("There are gaps in the monthly history. The official calculation uses available rows without inventing missing months.")
 
     loan_payment = None
     if loans is None:
-        warnings.append("贷款文件不可用，无法确认贷款月供 P；收入、支出及 runway 仍可计算。")
+        warnings.append("Loan data is unavailable, so loan payment P is unknown. Income, spending and runway can still be calculated.")
     else:
         account_loans = loans.loc[loans["account_id"] == account_id]
         cutoff = pd.Timestamp("2025-12-31")
@@ -117,11 +117,11 @@ def calculate_customer(monthly: pd.DataFrame, loans: Optional[pd.DataFrame], acc
         running = potentially_current.loc[potentially_current["status"].isin(["C", "D"])]
         bad_running = running["monthly_payment"].isna() | running["loan_start"].isna()
         if unknown_status.any() or bad_running.any():
-            warnings.append("相关贷款的状态、起始日或月供缺失/无效，无法可靠计算 P；未假设为 0。")
+            warnings.append("A relevant loan has a missing or invalid status, start date or monthly payment. P cannot be calculated reliably and is not assumed to be zero.")
         else:
             loan_payment = float(running["monthly_payment"].sum())
             if len(running) > 1:
-                warnings.append(f"有 {len(running)} 笔 C/D 状态贷款，P 为这些贷款月供的合计。")
+                warnings.append(f"There are {len(running)} running loans with status C/D. P is the sum of their monthly payments.")
 
     customer = Customer(
         account_id=account_id,
@@ -143,7 +143,7 @@ def calculate_customer(monthly: pd.DataFrame, loans: Optional[pd.DataFrame], acc
 
 def calculate_runway(buffer_left: float, gap: float) -> Tuple[float, bool, bool]:
     if not math.isfinite(buffer_left) or not math.isfinite(gap):
-        raise CalculationError("缓冲金或月度差额不是有效数字，无法计算 runway。")
+        raise CalculationError("The buffer or monthly gap is not a finite number, so runway cannot be calculated.")
     # Order matters: a depleted/negative buffer always produces zero runway.
     if buffer_left <= 0:
         return 0.0, False, False
@@ -155,17 +155,17 @@ def calculate_runway(buffer_left: float, gap: float) -> Tuple[float, bool, bool]
 
 def simulate(customer: Customer, scenario: Optional[Scenario] = None) -> Result:
     scenario = scenario or Scenario()
-    for name, value in (("月收入 I", customer.income), ("月支出 S", customer.spending), ("缓冲金 B", customer.buffer)):
+    for name, value in (("Monthly income I", customer.income), ("Monthly spending S", customer.spending), ("Buffer B", customer.buffer)):
         if value is None or not math.isfinite(value):
-            raise CalculationError(f"{name} 缺少有效数据，无法模拟。")
+            raise CalculationError(f"{name} has no valid data, so this scenario cannot be calculated.")
     if not math.isfinite(scenario.ei_rate) or not 0 <= scenario.ei_rate <= 1:
-        raise CalculationError("EI 替代率必须介于 0% 与 100% 之间。")
+        raise CalculationError("The EI replacement rate must be between 0% and 100%.")
     if not math.isfinite(scenario.bill_increase_rate) or scenario.bill_increase_rate < 0:
-        raise CalculationError("账单涨幅必须为非负有限数字。")
+        raise CalculationError("The bill increase must be a finite, non-negative number.")
     if not math.isfinite(scenario.repair_cost) or scenario.repair_cost < 0:
-        raise CalculationError("维修费用必须为非负有限数字。")
+        raise CalculationError("The repair cost must be a finite, non-negative number.")
     if scenario.higher_bills and (customer.household_bills is None or not math.isfinite(customer.household_bills)):
-        raise CalculationError("家庭账单 H 缺少有效数据，无法模拟账单上涨。")
+        raise CalculationError("Household bills H are unavailable, so a bill increase cannot be simulated.")
 
     income = customer.income * scenario.ei_rate if scenario.job_loss else customer.income
     spending = customer.spending

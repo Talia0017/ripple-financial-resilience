@@ -51,15 +51,15 @@ class AppTests(unittest.TestCase):
     def test_combine_and_adjust_controls(self):
         app = self.choose()
         app.checkbox(key="job_loss").check().run()
-        self.assertEqual(app.metric[-1].value, "5.9 个月")
+        self.assertEqual(app.metric[-1].value, "5.9 months")
         app.checkbox(key="higher_bills").check().run()
         app.checkbox(key="emergency_repair").check().run()
         self.assertEqual(app.number_input(key="repair_cost").value, 2500)
-        self.assertEqual(app.metric[-1].value, "2.7 个月")
+        self.assertEqual(app.metric[-1].value, "2.7 months")
         app.slider(key="ei_rate").set_value(80).run()
         app.number_input(key="bill_rate").set_value(50.0).run()
         app.number_input(key="repair_cost").set_value(1234.0).run()
-        self.assertEqual(app.metric[-1].value, "10.8 个月")
+        self.assertEqual(app.metric[-1].value, "10.8 months")
         self.assertEqual(len(app.exception), 0)
 
     def test_reset_and_switch_account(self):
@@ -68,7 +68,7 @@ class AppTests(unittest.TestCase):
         app.slider(key="ei_rate").set_value(20).run()
         app.checkbox(key="emergency_repair").check().run()
         app.number_input(key="repair_cost").set_value(9999.0).run()
-        self.assertEqual(app.metric[-1].value, "0.0 个月")
+        self.assertEqual(app.metric[-1].value, "0.0 months")
         app.button[0].click().run()
         self.assertFalse(app.checkbox(key="job_loss").value)
         self.assertFalse(app.checkbox(key="emergency_repair").value)
@@ -90,9 +90,9 @@ class AppTests(unittest.TestCase):
     def test_missing_loans_still_allows_simulation(self):
         (self.folder / "loans.csv").unlink()
         app = self.choose()
-        self.assertEqual(app.metric[5].value, "无法计算")
+        self.assertEqual(app.metric[5].value, "Unavailable")
         app.checkbox(key="job_loss").check().run()
-        self.assertEqual(app.metric[-1].value, "5.9 个月")
+        self.assertEqual(app.metric[-1].value, "5.9 months")
 
     def test_missing_income_blocks_simulation(self):
         monthly_fixture().assign(money_in=None).to_csv(self.folder / "monthly_summary.csv", index=False)
@@ -108,7 +108,7 @@ class AppTests(unittest.TestCase):
         app.selectbox[0].select("001").run()
         self.assertTrue(app.checkbox(key="higher_bills").disabled)
         app.checkbox(key="job_loss").check().run()
-        self.assertEqual(app.metric[-1].value, "5.9 个月")
+        self.assertEqual(app.metric[-1].value, "5.9 months")
         self.assertEqual(len(app.exception), 0)
 
 
