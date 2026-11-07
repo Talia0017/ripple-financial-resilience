@@ -1,195 +1,237 @@
 import {decodeProfiles, simulate} from "./engine.mjs";
+import {money, monthName, decodeHistory, monthlyInsights, runwayHeading, runwayExplanation, scenarioNarrative, savingsPlan, backupPlan, datasetStory} from "./dashboard.mjs";
+import {renderMonthlyChart, renderComparisonChart, renderStoryChart} from "./charts.mjs";
 
 const $ = id => document.getElementById(id);
-const amount = new Intl.NumberFormat("en-CA", {minimumFractionDigits: 2, maximumFractionDigits: 2});
-const money = value => value === null ? "Unavailable" : amount.format(value);
-let profiles = new Map();
-let selected = null;
-let loadGeneration = 0;
+const element = (tag, text, className) => {
+  const item = document.createElement(tag);
+  if (text !== undefined) item.textContent = text;
+  if (className) item.className = className;
+  return item;
+};
+let profiles = new Map(), selected = null, sourceHashes = null;
+let loadGeneration = 0, historyGeneration = 0, historyWindow = 6;
+let historyPromise = null, selectedHistory = null;
 
-function message(element, text) {
-  element.textContent = text;
-  element.hidden = !text;
-}
-
+function message(item, text) {item.textContent = text; item.hidden = !text;}
 function clearSelection() {
   selected = null;
+  selectedHistory = null;
+  historyGeneration++;
   $("dashboard").hidden = true;
   $("empty-state").hidden = false;
 }
-
 function setControls() {
   $("ei-rate").disabled = !$("job-loss").checked;
   $("bill-rate").disabled = !$("higher-bills").checked;
   $("repair-cost").disabled = !$("emergency-repair").checked;
   $("ei-output").textContent = `${$("ei-rate").value}%`;
 }
-
 function resetScenario() {
   for (const id of ["job-loss", "higher-bills", "emergency-repair"]) $(id).checked = false;
   $("ei-rate").value = "55";
   $("bill-rate").value = "15";
   $("repair-cost").value = String(Math.max(selected?.spending ?? 0, 0));
-  setControls();
   updateComparison();
 }
-
 function numberInput(id, label) {
   const input = $(id);
-  if (!input.value.trim() || !input.checkValidity()) throw new Error(`Enter a valid, non-negative number for ${label}.`);
-  const value = Number(input.value);
-  if (!Number.isFinite(value) || value < 0) throw new Error(`Enter a valid, non-negative number for ${label}.`);
-  return value;
+  if (!input.value.trim() || !input.checkValidity() || !Number.isFinite(Number(input.value)) || Number(input.value) < 0) throw new Error(`Enter a valid, non-negative number for ${label}.`);
+  return Number(input.value);
 }
-
+function fillTable(id, rows) {
+  $(id).replaceChildren(...rows.map(row => {
+    const tr = element("tr");
+    row.forEach((text, index) => {
+      const cell = element(index ? "td" : "th", text);
+      if (!index) cell.scope = "row";
+      tr.append(cell);
+    });
+    return tr;
+  }));
+}
+function renderPlans(after, active) {
+  const plan = savingsPlan(selected, after);
+  const host = $("savings-plan");
+  host.replaceChildren();
+  if (!plan) host.append(element("p", "A positive spending estimate and valid scenario data are needed to calculate a meaningful savings goal.", "notice"));
+  else {
+    const goal = element("p", money(plan.goal), "goal-number");
+    goal.append(element("small", "Three months of typical baseline spending"));
+    const progress = element("progress", `${(plan.progress * 100).toFixed(1)}%` , "goal-progress");
+    progress.max = plan.goal; progress.value = Math.min(plan.available, plan.goal);
+    progress.setAttribute("aria-label", "Estimated remaining scenario buffer toward the three-month spending goal");
+    const figures = element("dl", undefined, "plan-figures");
+    for (const [label, value] of [["Buffer toward goal · current scenario", money(plan.available)], ["Remaining target", money(plan.remaining)], ["Potential monthly contribution", money(plan.contribution)], ["Estimated time to goal", plan.months === null ? "Not estimable" : plan.months === 0 ? "Target met" : `${plan.months.toLocaleString("en-CA")} months`]]) {
+      const group = element("div");group.append(element("dt", label), element("dd", value));figures.append(group);
+    }
+    const note = plan.remaining === 0 ? "The estimated buffer meets this example target. A balance estimate is not proof of accessible savings."
+      : plan.contribution > 0 ? `Illustration: set aside half of the current scenario's ${money(plan.surplus)} estimated monthly surplus, limited to the remaining target. Timing assumes unchanged cash flow, no interest and no further shocks.`
+      : "No positive monthly surplus is available under this scenario. No contribution or completion date is suggested. Review the gap before planning a contribution.";
+    host.append(goal, progress, figures, element("p", note, "fineprint"));
+    if (after.buffer_left < 0) host.append(element("p", "A negative balance contributes zero toward this goal; the below-zero amount remains a separate issue to address.", "fineprint"));
+  }
+  $("backup-plan").replaceChildren(...(after ? backupPlan(after, active) : ["Scenario data is unavailable. Resolve missing account values or invalid assumptions before using a backup plan."]).map(text => element("li", text)));
+}
 function updateComparison() {
   if (!selected) return;
   setControls();
   try {
     const before = simulate(selected);
-    const after = simulate(selected, {
+    const options = {
       job_loss: $("job-loss").checked,
       ei_rate: $("job-loss").checked ? numberInput("ei-rate", "EI replacement rate") / 100 : .55,
       higher_bills: $("higher-bills").checked,
       bill_increase_rate: $("higher-bills").checked ? numberInput("bill-rate", "bill increase") / 100 : .15,
       emergency_repair: $("emergency-repair").checked,
       repair_cost: $("emergency-repair").checked ? numberInput("repair-cost", "repair cost") : 0,
-    });
-    const rows = [
-      ["Monthly income", money(before.income), money(after.income)],
-      ["Monthly spending (includes loan payments)", money(before.spending), money(after.spending)],
-      ["One-off costs", money(before.one_off_costs), money(after.one_off_costs)],
+    };
+    const after = simulate(selected, options);
+    const count = [options.job_loss, options.higher_bills, options.emergency_repair].filter(Boolean).length;
+    $("scenario-state").textContent = count ? `${count} hypothetical ${count === 1 ? "shock" : "shocks"} selected` : "No shocks selected";
+    renderComparisonChart($("comparison-chart"), before, after, $("comparison-tooltip"));
+    fillTable("comparison-body", [
+      ["Monthly money in", money(before.income), money(after.income)],
+      ["Monthly spending · includes loan payments", money(before.spending), money(after.spending)],
+      ["One-time costs", money(before.one_off_costs), money(after.one_off_costs)],
       ["Remaining buffer", money(before.buffer_left), money(after.buffer_left)],
       ["Monthly shortfall", money(before.monthly_shortfall), money(after.monthly_shortfall)],
-      ["Financial runway", before.runway_label, after.runway_label],
-    ];
-    const fragment = document.createDocumentFragment();
-    for (const row of rows) {
-      const tr = document.createElement("tr");
-      row.forEach((text, index) => {
-        const cell = document.createElement(index === 0 ? "th" : "td");
-        if (index === 0) cell.scope = "row";
-        cell.textContent = text;
-        tr.append(cell);
-      });
-      fragment.append(tr);
-    }
-    $("comparison-body").replaceChildren(fragment);
-    $("baseline-runway").textContent = before.runway_label;
-    $("after-runway").textContent = after.runway_label;
-    const explanation = $("result-explanation");
-    explanation.className = "notice";
-    if (after.buffer_left <= 0) {
-      explanation.classList.add("warning");
-      explanation.textContent = "Your buffer is depleted or negative. Under the official rules, runway is 0 months, even if current income covers monthly spending.";
-    } else if (after.no_shortfall) {
-      explanation.textContent = "No shortfall (120+): income covers monthly spending under the current assumptions. This judging label does not guarantee financial security for the next 120 months.";
-    } else {
-      explanation.textContent = `The monthly shortfall is ${money(after.monthly_shortfall)}, with ${money(after.buffer_left)} remaining in the buffer. ${after.capped ? "Runway is capped at 120 months under the official rules." : "Dividing the buffer by the shortfall gives the simplified runway shown above."}`;
-    }
+      ["Official financial runway", before.runway_label, after.runway_label],
+    ]);
+    $("after-runway").textContent = runwayHeading(after);
+    $("runway-explanation").textContent = runwayExplanation(after);
+    $("result-explanation").textContent = scenarioNarrative(before, after, count > 0);
     message($("scenario-error"), "");
-    $("comparison-body").closest("section").hidden = false;
+    $("comparison").hidden = false;
+    renderPlans(after, count > 0);
   } catch (error) {
     message($("scenario-error"), error.message);
-    $("comparison-body").closest("section").hidden = true;
-    $("baseline-runway").textContent = "Unavailable";
-    // Keep the valid baseline visible if only a shock parameter is invalid.
-    try { $("baseline-runway").textContent = simulate(selected).runway_label; } catch { /* unavailable data explained above */ }
+    $("comparison").hidden = true;
+    renderPlans(null, false);
   }
 }
-
+function renderHistory() {
+  if (!selectedHistory) return;
+  const rows = selectedHistory.slice(-historyWindow);
+  $("history-six").setAttribute("aria-pressed", String(historyWindow === 6));
+  $("history-twelve").setAttribute("aria-pressed", String(historyWindow === 12));
+  $("history-status").textContent = `${rows.length} recorded ${rows.length === 1 ? "month" : "months"} · ${monthName(rows[0][0])} – ${monthName(rows.at(-1)[0])}`;
+  renderMonthlyChart($("monthly-chart"), rows, $("monthly-tooltip"));
+  $("monthly-insights").replaceChildren(...monthlyInsights(rows).map(text => element("p", text)));
+  fillTable("monthly-table", rows.map(([month, incoming, outgoing]) => [monthName(month), money(incoming), money(outgoing)]));
+  $("history-note").textContent = `Showing the most recent ${rows.length} available records, up to ${historyWindow}. Accounts may have fewer records or gaps between months. Monthly values come directly from the official source, not from the summary medians.`;
+  $("history-content").hidden = false;
+}
+async function loadHistory() {
+  if (!selected) return;
+  const generation = ++historyGeneration;
+  $("history-content").hidden = true;
+  $("retry-history").hidden = true;
+  $("history-status").textContent = "Loading recorded monthly cash flows…";
+  for (const id of ["history-six", "history-twelve"]) $(id).disabled = true;
+  const currentProfiles = profiles, hashes = sourceHashes;
+  if (!historyPromise) historyPromise = fetch(new URL("./data/history.json", import.meta.url), {cache: "no-cache"}).then(async response => {
+    if (!response.ok) throw new Error(`Monthly history could not be loaded (HTTP ${response.status}).`);
+    return decodeHistory(await response.json(), currentProfiles, hashes);
+  });
+  try {
+    const histories = await historyPromise;
+    if (generation !== historyGeneration || !selected) return;
+    selectedHistory = histories.get(selected.account_id);
+    for (const id of ["history-six", "history-twelve"]) $(id).disabled = false;
+    renderHistory();
+  } catch (error) {
+    if (generation !== historyGeneration) return;
+    historyPromise = null;
+    $("history-status").textContent = `${error.message} Summary metrics and scenarios remain available. Monthly values have not been invented.`;
+    $("retry-history").hidden = false;
+  }
+}
 function chooseAccount(accountId) {
   const profile = profiles.get(accountId.trim());
   if (!profile) {
     clearSelection();
-    message($("lookup-error"), "Account not found. Choose an ID from the official account list, or select a random account.");
+    $("account-id").setAttribute("aria-invalid", "true");
+    message($("lookup-error"), "Account not found. Choose an ID from the official list, or try Random Account.");
     return;
   }
-  selected = profile;
+  selected = profile; selectedHistory = null; historyWindow = 6;
   $("account-id").value = profile.account_id;
+  $("account-id").removeAttribute("aria-invalid");
   message($("lookup-error"), "");
-  $("dashboard").hidden = false;
-  $("empty-state").hidden = true;
-  $("account-history").textContent = `Account ${profile.account_id} · ${profile.months} months\n${profile.first_month} to ${profile.last_month} · Buffer: ${profile.buffer_valid_rows}/${profile.buffer_rows} valid rows`;
+  $("dashboard").hidden = false; $("empty-state").hidden = true;
+  $("selected-account").textContent = `Account ${profile.account_id}`;
+  $("account-history").textContent = `${profile.months} recorded months · ${profile.first_month} – ${profile.last_month}`;
   const definitions = [
-    ["I · Typical monthly income", "income", "Median monthly money coming in."],
-    ["S · Typical monthly spending", "spending", "Median monthly money going out, including loan payments."],
-    ["F · Typical fixed costs", "fixed_costs", "Median of each month's combined bills, insurance and loan payments."],
-    ["B · Savings buffer", "buffer", "Average of the last six monthly average balances. May be negative."],
-    ["H · Household bills", "household_bills", "Median monthly household bills."],
-    ["P · Loan payment", "loan_payment", "Payments for loans running at year-end 2025. Already included in spending."],
+    ["Typical Monthly Money In", "income", "All money entering the account, not necessarily salary."],
+    ["Typical Monthly Spending", "spending", "Money going out, including loan payments."],
+    ["Estimated Cash Buffer", "buffer", "Historical average balance estimate, not total savings."],
   ];
-  const cards = document.createDocumentFragment();
-  for (const [label, key, definition] of definitions) {
-    const card = document.createElement("article");
-    card.className = "metric";
-    const title = document.createElement("p");
-    title.className = "metric-label";
-    title.textContent = label;
-    const value = document.createElement("strong");
-    value.textContent = money(profile[key]);
-    value.dataset.metric = key;
-    const help = document.createElement("p");
-    help.className = "definition";
-    help.textContent = definition;
-    card.append(title, value, help);
-    cards.append(card);
+  $("metrics").replaceChildren(...definitions.map(([label, key, help]) => {
+    const card = element("article", undefined, "metric");
+    const value = element("strong", money(profile[key]));value.dataset.metric = key;
+    card.append(element("p", label, "metric-label"), value, element("p", help, "definition"));return card;
+  }));
+  $("supporting-metrics").replaceChildren(...[
+    ["Typical Fixed Costs", "fixed_costs", "Bills, insurance and loan payments"],
+    ["Household Bills", "household_bills", profile.household_bills === 0 ? "Zero recorded does not mean no living expenses" : "Typical recorded monthly bills"],
+    ["Loan Payment", "loan_payment", "Loans running at year-end 2025"],
+  ].map(([label, key, help]) => {
+    const group = element("div"), dt = element("dt", label);
+    dt.append(element("small", help));group.append(dt, element("dd", money(profile[key])));return group;
+  }));
+  $("data-warnings").replaceChildren(...profile.warnings.map(text => element("p", text, "notice warning")));
+  try {
+    const baseline = simulate(profile);
+    $("baseline-runway").textContent = runwayHeading(baseline);
+    $("baseline-explanation").textContent = runwayExplanation(baseline);
+  } catch {
+    $("baseline-runway").textContent = "Unavailable";
+    $("baseline-explanation").textContent = "Money in, spending and buffer must all be available to calculate runway. Missing values are not replaced with zero.";
   }
-  $("metrics").replaceChildren(cards);
-  const warnings = document.createDocumentFragment();
-  for (const warning of profile.warnings) {
-    const notice = document.createElement("p");
-    notice.className = "notice warning";
-    notice.textContent = warning;
-    warnings.append(notice);
-  }
-  $("data-warnings").replaceChildren(warnings);
   $("higher-bills").disabled = !Number.isFinite(profile.household_bills);
-  resetScenario();
+  resetScenario();loadHistory();
+  $("overview-title").tabIndex = -1;$("overview-title").focus({preventScroll: true});
 }
-
+function renderDiscovery() {
+  const story = datasetStory(profiles);
+  if (!story) {$("story-insight").textContent = "There is insufficient valid data to establish the near-median inflow comparison.";$("story-chart").replaceChildren();return;}
+  $("story-insight").textContent = `Among ${story.sample} accounts with typical monthly money in within 5% of the dataset median, ${story.groups[1].count} had typical spending above money in. Similar inflows do not describe the whole financial position.`;
+  renderStoryChart($("story-chart"), story);
+  $("story-method").textContent = `We used ${story.valid.toLocaleString("en-CA")} accounts with valid money-in and spending summaries out of ${story.total.toLocaleString("en-CA")}. The median money in is ${money(story.median)}. The inclusive band is 95%–105% of that median (approximately ${money(story.lower)}–${money(story.upper)}), giving ${story.sample} accounts. We compared each account's unrounded all-history median spending with its unrounded all-history median money in. Percentages use this ${story.sample}-account band as the denominator.`;
+  $("story-buffers").textContent = story.groups.map(group => `${group.label}: median estimated buffer ${money(group.medianBuffer)} (${group.bufferCount} valid buffer estimates among ${group.count} accounts)`).join(". ") + ". These are historical balance estimates, not accessible savings.";
+}
 async function loadProfiles() {
   const generation = ++loadGeneration;
-  clearSelection();
+  clearSelection();historyPromise = null;
   $("load-error").hidden = true;
-  $("load-error-text").textContent = "";
-  $("retry-load").onclick = loadProfiles;
-  $("data-status").textContent = "Loading official account profiles…";
+  $("data-status").textContent = "Loading official accounts…";
   for (const id of ["account-id", "lookup-button", "random-account"]) $(id).disabled = true;
   try {
     const response = await fetch(new URL("./data/profiles.json", import.meta.url), {cache: "no-cache"});
     if (!response.ok) throw new Error(`Account data could not be loaded (HTTP ${response.status}).`);
-    const payload = await response.json();
-    const loaded = decodeProfiles(payload);
+    const payload = await response.json(), loaded = decodeProfiles(payload);
     if (generation !== loadGeneration) return;
-    profiles = loaded;
-    const options = document.createDocumentFragment();
-    for (const id of profiles.keys()) {
-      const option = document.createElement("option");
-      option.value = id;
-      options.append(option);
-    }
-    $("account-options").replaceChildren(options);
+    profiles = loaded;sourceHashes = payload.dataset.source_sha256;
+    $("account-options").replaceChildren(...[...profiles.keys()].map(id => {const option = element("option");option.value = id;return option;}));
     for (const id of ["account-id", "lookup-button", "random-account"]) $(id).disabled = false;
-    $("account-id").placeholder = "Enter an account ID or search the list";
+    $("account-id").placeholder = "Enter or search an Account ID";
     $("data-status").textContent = `${profiles.size.toLocaleString("en-CA")} official accounts · Ready`;
-    $("dataset-detail").textContent = `${payload.dataset.monthly_rows.toLocaleString("en-CA")} monthly records and ${payload.dataset.loan_rows.toLocaleString("en-CA")} loan records, covering ${payload.dataset.first_month} to ${payload.dataset.last_month}. All ${profiles.size.toLocaleString("en-CA")} accounts are loaded.`;
+    $("dataset-detail").textContent = `${payload.dataset.monthly_rows.toLocaleString("en-CA")} monthly records and ${payload.dataset.loan_rows.toLocaleString("en-CA")} loan records, covering ${payload.dataset.first_month} to ${payload.dataset.last_month}. All ${profiles.size.toLocaleString("en-CA")} accounts are supported. Amounts are displayed in CAD, following the challenge dataset units; no currency conversion is applied.`;
+    renderDiscovery();
   } catch (error) {
     if (generation !== loadGeneration) return;
-    profiles = new Map();
-    $("account-options").replaceChildren();
-    for (const id of ["account-id", "lookup-button", "random-account"]) $(id).disabled = true;
+    profiles = new Map();$("account-options").replaceChildren();
     $("data-status").textContent = "Account data unavailable";
     $("load-error").hidden = false;
-    $("load-error-text").textContent = `${error.message} Check your connection and try again. Sample accounts are never used to replace missing data.`;
+    $("load-error-text").textContent = `${error.message} Check your connection and try again. Missing data is never replaced with sample accounts.`;
   }
 }
-
-$("lookup-form").addEventListener("submit", event => {event.preventDefault(); chooseAccount($("account-id").value);});
-$("random-account").addEventListener("click", () => {
-  const ids = [...profiles.keys()];
-  if (ids.length) chooseAccount(ids[Math.floor(Math.random() * ids.length)]);
-});
+$("lookup-form").addEventListener("submit", event => {event.preventDefault();chooseAccount($("account-id").value);});
+$("random-account").addEventListener("click", () => {const ids = [...profiles.keys()];if (ids.length) chooseAccount(ids[Math.floor(Math.random() * ids.length)]);});
 $("reset-scenario").addEventListener("click", resetScenario);
+$("retry-load").addEventListener("click", loadProfiles);
+$("retry-history").addEventListener("click", () => {historyPromise = null;loadHistory();});
 for (const id of ["job-loss", "higher-bills", "emergency-repair", "ei-rate", "bill-rate", "repair-cost"]) $(id).addEventListener("input", updateComparison);
+for (const [id, count] of [["history-six", 6], ["history-twelve", 12]]) $(id).addEventListener("click", () => {historyWindow = count;renderHistory();});
 loadProfiles();

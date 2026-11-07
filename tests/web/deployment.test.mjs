@@ -7,6 +7,7 @@ import {tmpdir} from "node:os";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {decodeProfiles} from "../../public/engine.mjs";
+import {decodeHistory} from "../../public/dashboard.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const run = promisify(execFile);
@@ -20,8 +21,11 @@ test("configured deployment directory contains the entrypoint and its linked ass
   for (const [, reference] of html.matchAll(/(?:src|href)="(\.\/[^"#]+)"/g)) {
     await access(path.resolve(directory, reference));
   }
-  const profiles = decodeProfiles(JSON.parse(await readFile(path.join(directory, "data/profiles.json"), "utf8")));
+  const payload = JSON.parse(await readFile(path.join(directory, "data/profiles.json"), "utf8"));
+  const profiles = decodeProfiles(payload);
   assert.equal(profiles.size, 4500);
+  const history = decodeHistory(JSON.parse(await readFile(path.join(directory, "data/history.json"), "utf8")), profiles, payload.dataset.source_sha256);
+  assert.equal(history.size, profiles.size);
 });
 
 test("static validation succeeds in a clean source copy without generating dist", async () => {

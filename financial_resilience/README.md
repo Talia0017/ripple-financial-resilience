@@ -4,7 +4,8 @@
 
 See the [root README](../README.md) for the public website, cross-platform setup,
 dataset attribution and AI-assisted development disclosure. The public website
-uses precomputed profiles for all 4,500 official accounts; see the
+uses precomputed profiles and compact actual monthly cash flows for all 4,500
+official accounts; see the
 [Vercel deployment guide](../VERCEL_DEPLOYMENT.md) for its settings.
 
 This directory contains the preserved **local Streamlit application**. It reads
@@ -53,7 +54,9 @@ See the root README for environment creation and Windows executable paths.
 
 Unknown accounts are not fabricated. Expand the monthly-records section to
 inspect the selected account's source figures. Amounts retain the original
-dataset units, without assuming or converting to CAD.
+dataset units in the preserved local interface. The redesigned public dashboard
+formats those amounts as CAD, following the owner’s challenge specification,
+without conversion or rescaling.
 
 ## Data and project files
 
@@ -68,7 +71,7 @@ repository/
     ├── data_access.py         # CSV loading and validation
     ├── engine.py              # Official calculations and shock simulation
     ├── start_ripple.command   # macOS launcher
-    ├── export_profiles.py     # Public profile generation
+    ├── export_profiles.py     # Public profiles and monthly cash-flow export
     ├── requirements.txt
     ├── tests/                 # Clearly identified synthetic fixtures
     ├── verify_real_data.py    # Independent CSV/statistics checks

@@ -6,6 +6,8 @@ Python reads the two official CSVs and uses the existing `engine.py` to
 precompute all 4,500 account profiles. The committed output,
 `public/data/profiles.json`, is approximately 414 KiB. The HTML/CSS/JavaScript
 website loads this asset and calculates shocks directly in the browser.
+`public/data/history.json` adds the latest 12 recorded cash flows per account
+(54,000 records, about 1.50 MiB). No Python or CSVs are required on Vercel.
 
 **The public website does not require Docker, Streamlit hosting, a database,
 a backend API or server environment variables.** The original Streamlit app
@@ -48,7 +50,7 @@ output-directory overrides with the values above.
 The website entrypoint is `public/index.html`. Its CSS, JavaScript modules and
 `data/profiles.json` already exist beside it, ready to serve. Vercel publishes
 the contents of `public/` at the site root without compiling assets or rerunning
-Python. `npm run build` validates all five website assets and all 4,500 account
+Python. `npm run build` validates all eight website assets and all 4,500 account
 profiles, then Vercel packages them into its static deployment output. It does
 not create a `dist/` directory.
 
@@ -58,7 +60,7 @@ The build log for commit `c55c26a` reported no deployable `static`, `functions`
 or `services` directory, even though deployment completed successfully. With
 Vercel CLI 65.11.0, the empty `buildCommand` reproduced this empty output locally.
 Setting it to `npm run build` produced `.vercel/output/static/index.html` and
-all four required assets. Keep `outputDirectory` set to `public`; the CLI's
+the required assets. Keep `outputDirectory` set to `public`; the CLI's
 internal `.vercel/output` directory is not the dashboard Output Directory.
 
 The root URL `/` serves the output's `index.html`. No custom root rewrite or
@@ -70,7 +72,7 @@ unique URL. In Vercel, select this project and open its Production deployment.
 Confirm that its source is branch `main` at the new commit, then use **Visit**
 or the domain listed under **Domains** for that Production deployment. If no
 new deployment starts automatically, deploy the latest `main` commit. A Ready
-status alone is not sufficient: verify the homepage and profile JSON below.
+status alone is not sufficient: verify the homepage and both data assets below.
 
 ## Verify a live deployment
 
@@ -79,11 +81,14 @@ A successful GitHub push does not prove that the website is live. Check that:
 1. Vercel reports **Ready** and its actual deployment URL opens successfully.
 2. The page shows **“4,500 official accounts · Ready”**.
 3. `https://your-domain/data/profiles.json` returns account JSON, not a 404 or an HTML error page.
-4. Several randomly selected accounts show six metrics, baseline runway and the before/after comparison.
+4. Several accounts show three primary metrics, supporting commitments and baseline runway. Their six-/twelve-record chart and data table must match `/data/history.json`.
 5. All three shocks can be combined and adjusted. Reset restores the defaults; switching accounts also resets the scenario.
 6. An unknown ID shows a clear error. A repair cost greater than the buffer produces zero runway.
-7. Desktop and mobile views remain readable, including longer English labels and data-quality messages.
+7. Emergency savings and backup plans update with the scenario; no positive surplus means no suggested contribution or date.
+8. Desktop and mobile views remain readable. Charts scroll inside their containers on narrow screens, without making the page wider.
+9. `/data/history.json` returns history for all 4,500 account IDs. No login or HTML error page should replace either JSON asset.
 
+If monthly history fails, its own retry preserves summary metrics and scenarios.
 If profile loading fails, the page offers a retry and disables account lookup.
 It never substitutes sample accounts for missing data. There are no external
 fonts, CDN scripts, API keys or developer-specific file paths.

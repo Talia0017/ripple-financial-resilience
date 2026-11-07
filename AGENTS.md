@@ -34,7 +34,8 @@ credentials or put tokens into tracked files or command URLs.
 ## Architecture and checks
 
 - Public website: `public/` — buildless HTML/CSS/JavaScript and complete account
-  profiles. `npm run build` validates the existing assets without copying them.
+  profiles plus the latest 12 recorded monthly cash flows per account.
+  `npm run build` validates all eight assets without copying them.
 - Vercel: Other framework, repo root, `npm ci --ignore-scripts`, Build Command
   `npm run build`, output `public`. Keep the build command nonempty: CLI 65.11.0
   produced an empty deployment when it was blank. No generated source output
@@ -43,18 +44,25 @@ credentials or put tokens into tracked files or command URLs.
 - Preserved Python engine/local Streamlit app: `financial_resilience/`.
 - Run `npm test` and `npm run build` for website changes.
 - Python: `financial_resilience/.venv/bin/python -m unittest discover -s financial_resilience/tests -v`.
+- Dashboard presentation/planning rules live in `public/dashboard.mjs`; charts
+  live in `public/charts.mjs`. Keep `public/engine.mjs` and Python formulas intact.
+- For substantial UI changes, use the optional isolated Chrome checks in
+  `tests/browser/dashboard.mjs`; see README for setup. Check mobile overflow.
 - If calculations or profiles change and source CSVs are available, regenerate
   with `financial_resilience/.venv/bin/python financial_resilience/export_profiles.py`
   and run both `verify_real_data.py` and `verify_web_profiles.py` in that folder.
 - Never claim a live website based only on a build or push. Check the actual URL
-  and `/data/profiles.json`. Distinguish Node/Streamlit tests from browser checks.
+  and both `/data/profiles.json` and `/data/history.json`. Distinguish
+  Node/Streamlit tests from browser checks.
 
 ## Data permission (updated 2026-11-07)
 
 The owner confirmed with the organizers that the official challenge datasets may
 be publicly used and contain no real customer records. This supersedes earlier
 restricted-data instructions. Publication of the derived official account
-profiles at `public/data/profiles.json` is explicitly authorized.
+profiles at `public/data/profiles.json` is explicitly authorized. The owner also
+requested public, compact actual monthly cash flows for the redesigned charts;
+`public/data/history.json` contains only month, money in and money out.
 
 Keep raw CSVs in `data/` or `RESILIENCE_DATA_DIR`; they stay ignored for size and
 are not needed by the deployed site. Preserve source attribution and full

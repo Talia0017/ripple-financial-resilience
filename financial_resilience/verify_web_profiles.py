@@ -27,10 +27,24 @@ def main():
     assert bundle.loans is not None and not bundle.warnings
     assert set(exported) == set(bundle.monthly["account_id"])
     loan_groups = dict(tuple(bundle.loans.groupby("account_id", sort=False)))
+    history = json.loads((ROOT / "public/data/history.json").read_text(encoding="utf-8"))
+    assert set(history["accounts"]) == set(exported)
+    assert history["dataset"]["source_sha256"] == payload["dataset"]["source_sha256"]
+    history_checks = 0
     people = {}
     for account_id, rows in bundle.monthly.groupby("account_id", sort=True):
         person = calculate_customer(rows, loan_groups.get(account_id, bundle.loans.iloc[:0]), account_id)
         people[account_id] = person
+        shipped = history["accounts"][account_id]
+        assert len(shipped) == min(len(rows), 12)
+        for actual_row, original in zip(shipped, rows.tail(12).itertuples()):
+            assert actual_row[0] == original.month.strftime("%Y-%m")
+            for actual_value, expected_value in zip(actual_row[1:], (original.money_in, original.money_out)):
+                if math.isfinite(expected_value):
+                    check_number(actual_value, expected_value)
+                else:
+                    assert actual_value is None
+            history_checks += 1
         for name in names:
             actual, expected = exported[account_id][name], getattr(person, name)
             if isinstance(expected, float):
@@ -64,7 +78,8 @@ def main():
             assert actual[7:] == [expected.no_shortfall, expected.capped, expected.runway_label], (person.account_id, specification, actual, expected)
             checked += 1
     assert next(browser_results, None) is None
-    print(json.dumps({"accounts_verified": len(exported), "metric_checks": len(exported) * 6, "browser_python_scenarios": checked, "result": "all profiles, numeric results and runway labels match the original Python engine"}, indent=2))
+    assert history_checks == history["dataset"]["exported_rows"]
+    print(json.dumps({"accounts_verified": len(exported), "metric_checks": len(exported) * 6, "recorded_months_verified": history_checks, "browser_python_scenarios": checked, "result": "all profiles, recorded cash flows, numeric results and runway labels match the original source and Python engine"}, indent=2))
 
 
 if __name__ == "__main__":

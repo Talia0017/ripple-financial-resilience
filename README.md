@@ -17,7 +17,7 @@ Local application guide: [financial_resilience/README.md](financial_resilience/R
 ## Architecture
 
 ```text
-Official CSVs → Python/Pandas + existing engine.py → public/data/profiles.json
+Official CSVs → Python/Pandas + existing engine.py → profiles.json + history.json
                                                          ↓
                           Static HTML/CSS/JavaScript website → Vercel
 ```
@@ -30,18 +30,28 @@ for the public website.
 
 The original Streamlit application and Python financial engine remain available
 for local CSV inspection and independent verification. Its local monthly-history
-viewer is preserved; the public website ships account summaries rather than the
-full raw monthly ledger.
+viewer is preserved. The public website ships account summaries and the most
+recent 12 recorded money-in/money-out pairs per account, not the full raw ledger.
 
 ## Features
 
 - Search any valid official `account_id`, or choose a random account.
 - View monthly income, spending, fixed costs, buffer, household bills and loan payment.
+- Start with three primary metrics: typical monthly money in, typical spending
+  and an estimated cash buffer. Fixed costs, bills, loans and baseline runway
+  provide supporting context.
+- Explore a grouped cash-flow chart using recorded values, with six- and
+  twelve-record views, keyboard/touch tooltips and an accessible data table.
+- Read observations about recorded shortfalls and peak spending, without invented causes.
 - See baseline runway and combine job loss, higher bills and emergency repair.
 - Adjust EI replacement rate, bill increase and one-off repair amount.
 - Compare before/after income, spending, one-off costs, remaining buffer, monthly
   shortfall and financial runway.
 - Reset all parameters; switching accounts also resets the scenario.
+- No shocks are selected by default. A visual Before/After comparison shows
+  amounts in CAD; runway appears separately, never as a literal 120-month bar.
+- Explore an emergency savings goal and a numerical backup plan using
+  transparent Ripple planning assumptions, separate from official formulas.
 - Read financial definitions, missing-data explanations and model limitations.
 - Handle unknown IDs, failed data loading, missing metrics, negative buffers,
   zero shortfalls and repairs that exceed the buffer without fabricated fallbacks.
@@ -57,7 +67,8 @@ npm run build
 ```
 
 There are no third-party npm dependencies. `npm run build` validates the
-website's five existing files in `public/` and all 4,500 bundled profiles.
+website's eight existing files in `public/`, all 4,500 bundled profiles and
+54,000 actual recorded monthly cash flows.
 It does not compile assets or generate a separate output directory.
 No CSV, Python, virtual environment or developer-specific path is needed to build
 or run this public version.
@@ -103,6 +114,14 @@ repeating field names. No precision is removed from financial values. The asset
 contains account IDs, six financial metrics and history-quality metadata, with
 source-file SHA-256 hashes and attribution. It contains no raw transactions,
 names, addresses, credentials or access tokens.
+
+[`public/data/history.json`](public/data/history.json) adds **1,576,414 bytes**
+for 54,000 actual monthly records: at most 12 per account. It includes only the
+month, money in and money out, with full numeric precision, source hashes and
+attribution. Both assets together are approximately 2 MB before compression.
+History loads on the first account selection and is reused thereafter. No
+months are fabricated, no amounts are reconstructed from medians, and gaps or
+missing values remain explicit. Raw CSVs and unrelated monthly columns stay local.
 
 Raw CSVs remain excluded to keep the repository and deployment small. They are
 needed only to regenerate or independently verify the profiles. Obtain the
@@ -163,13 +182,47 @@ otherwise                       → min(buffer_left / gap, 120)
 ```
 
 Numeric runway is displayed to one decimal place, including Python-compatible
-ties-to-even formatting. Amounts retain the CSV's original units; no CAD currency
-assumption or conversion is made.
+ties-to-even formatting. The redesigned public dashboard formats the official
+dataset amounts as CAD, as specified by the project owner. No conversion or
+rescaling is applied. Money in includes all account inflows, not just salary;
+the buffer is a historical balance estimate, not total savings. Zero recorded
+household bills do not establish that an account holder has no living expenses.
 
 The runway is a static simplified judging calculation, not a time-based forecast.
 EI eligibility, benefit caps and duration are not established; EI is not assumed
 to last indefinitely. B is a historical proxy, not a live available balance.
-Personalized savings goals and backup plans remain a future phase.
+The savings and backup tools below are illustrative planning examples, not
+personalized advice or additions to the official judging calculations.
+
+## Planning and storytelling methodology
+
+The overview is the primary experience, followed by hypothetical scenarios and
+supporting plans. Expandable details retain all official formulas. Historical
+records and hypothetical results are labelled separately throughout.
+
+The emergency goal is **3 × typical baseline spending**. Buffer progress uses
+the non-negative remaining scenario buffer, capped visually at the goal. A
+negative balance contributes zero; its deficit is still explained separately.
+Remaining target = max(goal − max(scenario buffer, 0), 0). The illustrative
+monthly contribution is half of the scenario's positive estimated surplus,
+limited to the remaining target. Time to goal is the ceiling of remaining
+target / contribution. A met target needs no contribution; no positive surplus
+means no suggested contribution or completion date. Missing or non-positive
+baseline spending makes this example unavailable. Timing assumes no further
+changes or interest. Modelled surplus does not prove personal affordability.
+
+Backup steps show the numerical monthly gap, any negative buffer and one-time
+repair deduction. They do not invent reducible expenses, EI eligibility or
+borrowing capacity. All rules are deterministic and run locally in the browser.
+
+**What We Discovered** uses all 4,500 valid account summaries. The median typical
+monthly money in is CAD 7,568.2625. An inclusive ±5% band contains 166 accounts;
+116 have typical money in covering typical spending and 50 (30.1%) have spending
+above money in. The groups' median estimated buffers are CAD 30,434.58583333333
+(n=116) and CAD 17,689.631666666668 (n=50), respectively. The comparison is
+descriptive: different histories and timing may affect summaries, and it does
+not establish causes, personal behaviour or future outcomes. Explaining why
+these differences occur would require further research.
 
 ## Tests and verification
 
@@ -213,3 +266,33 @@ All interfaces, source comments, tests, generated messages, documentation and
 commit messages use English. Chinese is permitted only in direct Codex chat
 with the project owner. The language regression test checks project-owned files
 and the public profile asset for CJK ideographs.
+
+## Optional browser verification
+
+The application has no runtime npm dependencies. Browser QA uses a separately
+installed Playwright package and an isolated installed Chrome session. Start the
+local preview above, install Playwright in a temporary directory, then run:
+
+```sh
+# Set this to the absolute file URL of your separate Playwright installation.
+RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/dashboard.mjs
+```
+
+For example, `npm install --prefix /tmp/ripple-browser-qa --no-save --ignore-scripts playwright`
+installs only the optional test tool outside this repository. Google Chrome must
+be installed. The script tests real-account lookup, invalid IDs, all seven
+nonempty shock combinations, adjustments, reset, annotations, savings and backup
+plans, chart keyboard access, mobile interaction, 320/375/768/1440-pixel page
+widths, profile/history loading failure recovery and the production CSP. It
+writes screenshots to the system temporary directory, or `RIPPLE_SCREENSHOTS`.
+Use `RIPPLE_TEST_URL` to select a different local test server. Mocked HTTP 503
+responses are explicit recovery tests, not production fallback data.
+
+`verify_web_profiles.py` additionally checks all 54,000 shipped monthly records
+against the original CSV data. All financial profiles and 54,000 shock results
+remain checked against the preserved Python engine. Node tests cover annotation
+accuracy, missing/tied history, corrupt assets, no-shortfall and negative-buffer
+language, savings goal completion, zero spending and contribution limits. The
+dataset-cohort counts and median buffers were independently cross-checked with
+Python's `statistics` module. Browser results do not prove a hosted deployment;
+verify its homepage and both JSON assets separately.

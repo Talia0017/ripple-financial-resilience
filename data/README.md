@@ -8,8 +8,10 @@ challenge datasets may be publicly used because they contain no real customer
 data. This supersedes the earlier restricted-access assumption.
 
 The public website publishes compact, derived profiles for every official
-account in `public/data/profiles.json`. Raw CSVs remain Git-ignored to keep the
-repository and deployment small, rather than because public use is forbidden.
+account in `public/data/profiles.json`, plus its latest 12 recorded money-in /
+money-out pairs in `public/data/history.json`. No missing months are invented.
+Raw CSVs remain Git-ignored to keep the repository and deployment small,
+rather than because public use is forbidden.
 No credentials, unrelated personal data or additional datasets are authorized
 for publication by this confirmation.
 
