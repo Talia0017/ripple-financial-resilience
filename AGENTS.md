@@ -35,8 +35,10 @@ credentials or put tokens into tracked files or command URLs.
 
 - Public website: `public/` — buildless HTML/CSS/JavaScript and complete account
   profiles. `npm run build` validates the existing assets without copying them.
-- Vercel: Other framework, repo root, `npm ci --ignore-scripts`, empty Build
-  Command, output `public`. No generated output directory is needed. No Docker,
+- Vercel: Other framework, repo root, `npm ci --ignore-scripts`, Build Command
+  `npm run build`, output `public`. Keep the build command nonempty: CLI 65.11.0
+  produced an empty deployment when it was blank. No generated source output
+  directory is needed. No Docker,
   Python runtime, database or environment variables.
 - Preserved Python engine/local Streamlit app: `financial_resilience/`.
 - Run `npm test` and `npm run build` for website changes.

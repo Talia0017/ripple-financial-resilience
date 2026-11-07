@@ -75,12 +75,13 @@ browser module and fetch security rules require HTTP.
 
 Import `Talia0017/ripple-financial-resilience`, production branch `main`.
 Use **Framework Preset: Other**, **Root Directory: ./**, **Build Command:
-empty (enable Override and clear the field)**, **Install Command:
+`npm run build`**, **Install Command:
 `npm ci --ignore-scripts`**, **Output Directory: `public`**. No environment
 variables or `PORT` are required. `vercel.json` declares these settings and
 overrides the corresponding dashboard settings. Remove old Container/Streamlit build
 overrides if an existing Vercel project was configured for the earlier approach.
-See the [full Chinese guide](VERCEL_DEPLOYMENT.md) for deployment verification.
+Keep the build command nonempty so Vercel packages the static output.
+See the [deployment guide](VERCEL_DEPLOYMENT.md) for verification and troubleshooting.
 
 A local build or a GitHub push is not proof of a live deployment. Only report the
 site as live after the actual Vercel URL and its profile asset have been checked.

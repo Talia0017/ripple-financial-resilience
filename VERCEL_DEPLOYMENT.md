@@ -32,13 +32,13 @@ written in English. Chinese is permitted only in direct Codex chat with the owne
 | Framework Preset | **Other** |
 | Root Directory | Repository root: `./`, not `financial_resilience` or `public` |
 | Install Command | `npm ci --ignore-scripts` |
-| Build Command | Empty: enable Override and clear the field to skip the build step |
+| Build Command | `npm run build` |
 | Output Directory | `public` |
 | Node.js Version | 22 or a newer supported version |
 | Environment Variables | None required. Remove `PORT` and local CSV paths configured for the earlier container setup. |
 | Start Command / Python / Docker | Not required |
 
-The settings are declared in `vercel.json`: `buildCommand` is an empty string
+The settings are declared in `vercel.json`: `buildCommand` is `npm run build`
 and `outputDirectory` is `public`. These values override the corresponding
 Vercel Project Settings. Keep the dashboard consistent with the table above.
 For a previously configured Container project, update **Settings → Build and
@@ -47,21 +47,30 @@ output-directory overrides with the values above.
 
 The website entrypoint is `public/index.html`. Its CSS, JavaScript modules and
 `data/profiles.json` already exist beside it, ready to serve. Vercel publishes
-`public/` directly without compiling, copying files or rerunning Python.
-The local `npm run build` command remains available as a validation check for
-all five website assets and all 4,500 account profiles; deployment does not need it.
+the contents of `public/` at the site root without compiling assets or rerunning
+Python. `npm run build` validates all five website assets and all 4,500 account
+profiles, then Vercel packages them into its static deployment output. It does
+not create a `dist/` directory.
 
-### Why the missing output-directory error occurred
+### Troubleshoot a Ready deployment that returns 404
 
-The previous configuration required `dist/`, a directory created only by an
-extra copy step. The reported error means that the failed deployment finished
-without that expected directory. Without its full build log, it is not possible
-to establish whether the old command was skipped or the project root differed.
-Neither possibility requires a generated directory for this static website.
+The build log for commit `c55c26a` reported no deployable `static`, `functions`
+or `services` directory, even though deployment completed successfully. With
+Vercel CLI 65.11.0, the empty `buildCommand` reproduced this empty output locally.
+Setting it to `npm run build` produced `.vercel/output/static/index.html` and
+all four required assets. Keep `outputDirectory` set to `public`; the CLI's
+internal `.vercel/output` directory is not the dashboard Output Directory.
 
-The fix removes that dependency by serving the committed `public/` directory.
-Do not add an empty `dist/` to silence the error or change only the dashboard:
-the repository's `vercel.json` is authoritative for the output directory.
+The root URL `/` serves the output's `index.html`. No custom root rewrite or
+SPA catch-all is required. A rewrite cannot repair a deployment missing its
+files. Do not add an empty `dist/` to silence an output-directory error.
+
+After pushing the fix, open the new deployment rather than the old deployment's
+unique URL. In Vercel, select this project and open its Production deployment.
+Confirm that its source is branch `main` at the new commit, then use **Visit**
+or the domain listed under **Domains** for that Production deployment. If no
+new deployment starts automatically, deploy the latest `main` commit. A Ready
+status alone is not sufficient: verify the homepage and profile JSON below.
 
 ## Verify a live deployment
 

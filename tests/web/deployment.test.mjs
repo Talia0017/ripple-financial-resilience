@@ -14,7 +14,7 @@ const run = promisify(execFile);
 test("configured deployment directory contains the entrypoint and its linked assets", async () => {
   const config = JSON.parse(await readFile(path.join(root, "vercel.json"), "utf8"));
   assert.equal(config.framework, null);
-  assert.equal(config.buildCommand, "");
+  assert.equal(config.buildCommand, "npm run build");
   const directory = path.resolve(root, config.outputDirectory);
   const html = await readFile(path.join(directory, "index.html"), "utf8");
   for (const [, reference] of html.matchAll(/(?:src|href)="(\.\/[^"#]+)"/g)) {
