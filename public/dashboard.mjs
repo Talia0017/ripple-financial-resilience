@@ -91,6 +91,73 @@ export function scenarioSummary(before, after, active) {
   return parts.join(" · ");
 }
 
+export function changeLabel(delta) {
+  if (!Number.isFinite(delta)) throw new Error("A monetary change is unavailable.");
+  if (delta === 0) return "$0.00";
+  const amount = Math.abs(delta) < .005 ? "< $0.01" : money(Math.abs(delta));
+  return `${delta < 0 ? "−" : "+"}${amount}`;
+}
+
+export function comparisonMetrics(before, after) {
+  return [["income", "Monthly Money In"], ["spending", "Monthly Spending"], ["buffer_left", "Remaining Cash Buffer"], ["monthly_shortfall", "Monthly Shortfall"]].map(([key, label]) => {
+    const start = before[key], end = after[key], delta = end - start;
+    if (![start, end, delta].every(Number.isFinite)) throw new Error("A monetary comparison is unavailable. Missing values are not replaced with zero.");
+    const minimum = Math.min(0, start, end), maximum = Math.max(0, start, end);
+    return {key, label, before: start, after: end, delta, changed: delta !== 0,
+      direction: delta < 0 ? "Decrease" : delta > 0 ? "Increase" : "No change",
+      change: changeLabel(delta), domain: minimum === maximum ? [0, 1] : [minimum, maximum]};
+  });
+}
+
+export function scenarioInsight(profile, before, after, options = {}) {
+  options = {ei_rate: .55, bill_increase_rate: .15, ...options};
+  const metrics = comparisonMetrics(before, after);
+  const affected = metrics.filter(row => row.changed).map(row => row.key);
+  const contributors = [], noEffect = [];
+  const percent = value => value !== 0 && Math.abs(value) < .05 ? "less than 0.1" : new Intl.NumberFormat("en-CA", {maximumFractionDigits: 1}).format(value);
+  const changeAmount = value => Math.abs(value) > 0 && Math.abs(value) < .005 ? "less than $0.01" : money(Math.abs(value));
+  const incoming = metrics[0].delta, spending = metrics[1].delta, buffer = metrics[2].delta;
+  if (options.job_loss) {
+    const rate = percent(options.ei_rate * 100);
+    if (incoming < 0 && before.income > 0) contributors.push(`At ${rate}% income replacement, monthly money in falls by ${percent(-incoming / before.income * 100)}%.`);
+    else if (incoming !== 0) contributors.push(`At ${rate}% replacement, modeled monthly money in ${incoming < 0 ? "falls" : "rises"} by ${changeAmount(incoming)}.`);
+    else {
+      contributors.push(before.income === 0 ? "Recorded monthly money in is $0.00, so the replacement multiplier has no effect." : `${rate}% replacement leaves monthly money in unchanged.`);
+      noEffect.push(before.income === 0 ? "recorded money in is $0.00" : `replacement is ${rate}%`);
+    }
+  }
+  if (options.higher_bills) {
+    const rate = percent(options.bill_increase_rate * 100);
+    if (spending > 0) contributors.push(`A ${rate}% rise in recorded household bills adds ${changeAmount(spending)} to monthly spending.`);
+    else if (spending < 0) contributors.push(`The ${rate}% bill multiplier reduces modeled spending by ${changeAmount(spending)} because the recorded bill estimate is negative.`);
+    else {
+      contributors.push(profile.household_bills === 0 ? `A ${rate}% bill increase has no modeled effect because recorded household bills are $0.00.` : `A ${rate}% bill increase leaves monthly spending unchanged.`);
+      noEffect.push(profile.household_bills === 0 ? "recorded bills are $0.00" : `the bill increase is ${rate}%`);
+    }
+  }
+  if (options.emergency_repair) {
+    contributors.push(buffer === 0 ? "A $0.00 emergency cost leaves the estimated cash buffer unchanged." : `The one-time repair removes ${changeAmount(buffer)} from the estimated cash buffer.`);
+    if (buffer === 0) noEffect.push("emergency cost is $0.00");
+  }
+  if (!contributors.length) return {primary: "Choose a financial change to explore its impact.", supporting: "", contributors, affected};
+  let supporting = after.buffer_left <= 0 ? "The buffer is depleted or negative, so the official runway is 0 months."
+    : after.monthly_shortfall > 0 ? `${spending === 0 ? "With spending unchanged, the" : "The"} estimated monthly shortfall is ${changeAmount(after.monthly_shortfall)}.`
+    : "Monthly money in covers spending under these assumptions.";
+  let primary;
+  if (contributors.length === 1) {
+    primary = contributors[0];
+    if (options.higher_bills && profile.household_bills === 0) supporting = "Zero recorded bills do not establish that there are no living expenses.";
+  } else if (!affected.length) {
+    primary = "The combined assumptions leave all four monetary metrics unchanged.";
+    supporting = noEffect.length ? noEffect.join("; ").replace(/^./, value => value.toUpperCase()) + "." : supporting;
+  } else if (after.buffer_left <= 0 && buffer !== 0) primary = `Combined shocks leave the estimated cash buffer at ${money(after.buffer_left)}.`;
+  else if (metrics[3].delta !== 0) primary = `Combined shocks ${metrics[3].delta > 0 ? "add" : "remove"} ${changeAmount(metrics[3].delta)} ${metrics[3].delta > 0 ? "to" : "from"} the estimated monthly shortfall.`;
+  else if (buffer !== 0) primary = `Combined shocks reduce the estimated cash buffer by ${changeAmount(buffer)}.`;
+  else if (incoming !== 0) primary = `Combined shocks ${incoming < 0 ? "reduce" : "increase"} monthly money in by ${changeAmount(incoming)}.`;
+  else primary = `Combined shocks ${spending > 0 ? "increase" : "reduce"} monthly spending by ${changeAmount(spending)}.`;
+  return {primary, supporting, contributors, affected};
+}
+
 export function savingsPlan(profile, scenario) {
   if (!Number.isFinite(profile.spending) || profile.spending <= 0 || !scenario || ![scenario.buffer_left, scenario.income, scenario.spending].every(Number.isFinite)) return null;
   const goal = profile.spending * 3;

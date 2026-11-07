@@ -1,5 +1,5 @@
 import {decodeProfiles, simulate} from "./engine.mjs";
-import {money, monthName, decodeHistory, monthlyInsights, monthlySummary, runwayHeading, runwayExplanation, scenarioNarrative, scenarioSummary, savingsPlan, backupPlan, datasetStory} from "./dashboard.mjs";
+import {money, monthName, decodeHistory, monthlyInsights, monthlySummary, runwayHeading, runwayExplanation, scenarioInsight, savingsPlan, backupPlan, datasetStory} from "./dashboard.mjs";
 import {renderMonthlyChart, renderComparisonChart, renderStoryChart} from "./charts.mjs";
 
 const $ = id => document.getElementById(id);
@@ -14,12 +14,23 @@ let loadGeneration = 0, historyGeneration = 0, historyWindow = 6;
 let historyPromise = null, selectedHistory = null;
 
 function message(item, text) {item.textContent = text; item.hidden = !text;}
+function clearScenarioOutput() {
+  $("comparison").hidden = true;
+  $("scenario-invitation").hidden = true;
+  $("comparison-chart").replaceChildren();
+  $("comparison-body").replaceChildren();
+  $("scenario-contributors").replaceChildren();
+  for (const id of ["after-runway", "scenario-state", "runway-explanation", "result-explanation", "result-supporting"]) $(id).textContent = "";
+  $("result-supporting").hidden = true;
+  $("scenario-insight").removeAttribute("data-affected");
+}
 function clearSelection() {
   selected = null;
   selectedHistory = null;
   historyGeneration++;
   $("dashboard").hidden = true;
   $("empty-state").hidden = false;
+  clearScenarioOutput();
 }
 function setControls() {
   for (const [switchId, inputId, settingsId] of [["job-loss", "ei-rate", "job-settings"], ["higher-bills", "bill-rate", "bill-settings"], ["emergency-repair", "repair-cost", "repair-settings"]]) {
@@ -27,18 +38,21 @@ function setControls() {
     $(inputId).disabled = !enabled;
     $(settingsId).hidden = !enabled;
   }
-  $("ei-output").textContent = `${$("ei-rate").value}%`;
+  $("ei-rate-number").disabled = !$("job-loss").checked;
+  $("ei-output").textContent = `${$("ei-rate-number").value || "—"}%`;
 }
 function resetScenario() {
   for (const id of ["job-loss", "higher-bills", "emergency-repair"]) $(id).checked = false;
   $("ei-rate").value = "55";
+  $("ei-rate-number").value = "55";
   $("bill-rate").value = "15";
   $("repair-cost").value = String(Math.max(selected?.spending ?? 0, 0));
+  $("comparison-details").open = false;
   updateComparison();
 }
 function numberInput(id, label) {
   const input = $(id);
-  if (!input.value.trim() || !input.checkValidity() || !Number.isFinite(Number(input.value)) || Number(input.value) < 0) throw new Error(`Enter a valid, non-negative number for ${label}.`);
+  if (!input.value.trim() || !input.checkValidity() || !Number.isFinite(Number(input.value)) || Number(input.value) < 0) throw new Error(id === "ei-rate-number" ? "Enter a whole-number replacement percentage from 0 to 100." : `Enter a valid, non-negative number for ${label}.`);
   return Number(input.value);
 }
 function fillTable(id, rows) {
@@ -86,7 +100,7 @@ function updateComparison() {
     const before = simulate(selected);
     const options = {
       job_loss: $("job-loss").checked,
-      ei_rate: $("job-loss").checked ? numberInput("ei-rate", "EI replacement rate") / 100 : .55,
+      ei_rate: $("job-loss").checked ? numberInput("ei-rate-number", "income replacement percentage") / 100 : .55,
       higher_bills: $("higher-bills").checked,
       bill_increase_rate: $("higher-bills").checked ? numberInput("bill-rate", "bill increase") / 100 : .15,
       emergency_repair: $("emergency-repair").checked,
@@ -94,8 +108,16 @@ function updateComparison() {
     };
     const after = simulate(selected, options);
     const count = [options.job_loss, options.higher_bills, options.emergency_repair].filter(Boolean).length;
-    $("scenario-state").textContent = count ? `${count} hypothetical ${count === 1 ? "shock" : "shocks"} selected` : "No shocks selected";
-    renderComparisonChart($("comparison-chart"), before, after, $("comparison-tooltip"));
+    if (!count) {
+      clearScenarioOutput();
+      $("scenario-invitation").hidden = false;
+      message($("scenario-error"), "");
+      renderPlans(before, false);
+      return;
+    }
+    $("scenario-invitation").hidden = true;
+    $("scenario-state").textContent = `${count} hypothetical ${count === 1 ? "shock" : "shocks"} selected`;
+    renderComparisonChart($("comparison-chart"), before, after);
     fillTable("comparison-body", [
       ["Monthly money in", money(before.income), money(after.income)],
       ["Monthly spending · includes loan payments", money(before.spending), money(after.spending)],
@@ -106,14 +128,17 @@ function updateComparison() {
     ]);
     $("after-runway").textContent = runwayHeading(after);
     $("runway-explanation").textContent = runwayExplanation(after);
-    $("result-explanation").textContent = scenarioSummary(before, after, count > 0);
-    $("scenario-detail-explanation").textContent = scenarioNarrative(before, after, count > 0);
+    const insight = scenarioInsight(selected, before, after, options);
+    $("result-explanation").textContent = insight.primary;
+    message($("result-supporting"), insight.supporting);
+    $("scenario-insight").dataset.affected = insight.affected.join(" ");
+    $("scenario-contributors").replaceChildren(...insight.contributors.map(text => element("li", text)));
     message($("scenario-error"), "");
     $("comparison").hidden = false;
     renderPlans(after, count > 0);
   } catch (error) {
+    clearScenarioOutput();
     message($("scenario-error"), error.message);
-    $("comparison").hidden = true;
     renderPlans(null, false);
   }
 }
@@ -247,7 +272,13 @@ $("random-account").addEventListener("click", () => {const ids = [...profiles.ke
 $("reset-scenario").addEventListener("click", resetScenario);
 $("retry-load").addEventListener("click", loadProfiles);
 $("retry-history").addEventListener("click", () => {historyPromise = null;loadHistory();});
-for (const id of ["job-loss", "higher-bills", "emergency-repair", "ei-rate", "bill-rate", "repair-cost"]) $(id).addEventListener("input", updateComparison);
+for (const id of ["job-loss", "higher-bills", "emergency-repair", "bill-rate", "repair-cost"]) $(id).addEventListener("input", updateComparison);
+$("ei-rate").addEventListener("input", () => {$("ei-rate-number").value = $("ei-rate").value;updateComparison();});
+$("ei-rate-number").addEventListener("input", () => {
+  const input = $("ei-rate-number");
+  if (input.value.trim() && input.checkValidity() && Number.isFinite(Number(input.value))) $("ei-rate").value = input.value;
+  updateComparison();
+});
 for (const [id, count] of [["history-six", 6], ["history-twelve", 12]]) $(id).addEventListener("click", () => {historyWindow = count;renderHistory();});
 loadProfiles();
 

@@ -212,6 +212,27 @@ assumptions, limitations and the verified research method. No financial or
 planning rules changed in this visual refinement. Five-second comprehension is
 a design goal; automated layout checks are not a usability study.
 
+Feature 2 uses a **Before → After → Change** comparison for money in, spending,
+remaining buffer and monthly shortfall. Each metric's pair shares a scale;
+scales differ between metrics, as the visible label explains. Signed deltas
+are always visible, changed rows are emphasized, and zero/negative values use
+a real zero origin. This comparison reflows on mobile without horizontal
+scrolling. It does not plot the no-shortfall judging label as a duration.
+Changes use the original full-precision amounts. Display values and deltas are
+rounded independently; this can produce a one-cent difference from subtracting
+the displayed amounts, as the comparison and its detail disclosure explain.
+
+With no selected shocks, a compact invitation replaces the identical-value
+chart; financial plans still use the baseline. Selected parameters appear on
+demand, and income-replacement slider and numeric entry stay synchronized.
+One primary insight and at most one supporting sentence explain the selected
+assumptions and actual monetary effects; combined contributions and full
+numbers remain available under **View scenario details**. Zero recorded bills
+are described as a modeling limitation, not evidence of no living expenses.
+Reset, account switching and invalid input clear obsolete results. Comparison
+values are visible directly and keyboard accessible, with no hidden tooltip
+state. Updating an assumption does not auto-scroll or animate the dashboard.
+
 The emergency goal is **3 × typical baseline spending**. Buffer progress uses
 the non-negative remaining scenario buffer, capped visually at the goal. A
 negative balance contributes zero; its deficit is still explained separately.

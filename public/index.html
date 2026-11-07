@@ -54,17 +54,19 @@
           <label class="shock-option"><input id="emergency-repair" type="checkbox" aria-controls="repair-settings"><span>Emergency Repair</span></label>
         </fieldset>
         <div class="scenario-parameters">
-          <div id="job-settings" class="shock-assumption" hidden><label for="ei-rate">EI replacement <output id="ei-output" for="ei-rate">55%</output></label><input id="ei-rate" type="range" min="0" max="100" step="1" value="55" disabled></div>
-          <div id="bill-settings" class="shock-assumption" hidden><label for="bill-rate">Bill increase (%)</label><input id="bill-rate" type="number" min="0" step="any" value="15" disabled></div>
-          <div id="repair-settings" class="shock-assumption" hidden><label for="repair-cost">One-time cost (CAD)</label><input id="repair-cost" type="number" min="0" step="any" value="0" disabled></div>
+          <div id="job-settings" class="shock-assumption" hidden><label for="ei-rate">Income Replacement</label><output id="ei-output" for="ei-rate ei-rate-number" class="sr-only">55%</output><div class="replacement-controls"><input id="ei-rate" type="range" aria-label="Income replacement slider" min="0" max="100" step="1" value="55" disabled><div class="percentage-input"><input id="ei-rate-number" aria-label="Income replacement percentage" type="number" min="0" max="100" step="1" value="55" disabled><span aria-hidden="true">%</span></div></div></div>
+          <div id="bill-settings" class="shock-assumption" hidden><label for="bill-rate">Household Bills Increase (%)</label><input id="bill-rate" type="number" min="0" step="any" value="15" disabled></div>
+          <div id="repair-settings" class="shock-assumption" hidden><label for="repair-cost">Emergency Cost (CAD)</label><input id="repair-cost" type="number" min="0" step="any" value="0" disabled></div>
         </div>
         <p id="scenario-error" class="notice error" role="alert" hidden></p>
-        <div id="comparison" class="comparison" aria-labelledby="comparison-title">
-          <div class="outcome"><div><h3 id="comparison-title">Estimated Runway</h3><strong id="after-runway" class="runway-value"></strong></div><span id="scenario-state" class="state-badge">No shocks selected</span></div>
-          <p id="result-explanation" class="scenario-insight" aria-live="polite"></p>
-          <div class="legend"><span><i class="key before" aria-hidden="true"></i>Historical baseline</span><span><i class="key after" aria-hidden="true"></i>Hypothetical scenario</span></div>
-          <div class="chart-viewport" tabindex="0" aria-label="Before and after chart; scroll horizontally on smaller screens"><div id="comparison-chart"></div></div><p id="comparison-tooltip" class="chart-tooltip" hidden></p>
-          <details id="comparison-details" class="chart-details"><summary>View Before / After details</summary><p id="scenario-detail-explanation"></p><p id="runway-explanation"></p><div class="table-wrap"><table><caption>Baseline and scenario · amounts in CAD</caption><thead><tr><th scope="col">Metric</th><th scope="col">Before</th><th scope="col">After</th></tr></thead><tbody id="comparison-body"></tbody></table></div></details>
+        <p id="scenario-invitation" class="scenario-invitation">Choose a financial change to explore its impact.</p>
+        <div id="comparison" class="comparison" aria-labelledby="comparison-title" hidden>
+          <div class="outcome"><div><h3 id="comparison-title">Estimated Financial Runway</h3><strong id="after-runway" class="runway-value"></strong><p class="runway-note">Simplified estimate, not a forecast.</p></div><span id="scenario-state" class="state-badge"></span></div>
+          <div class="legend"><span><i class="key before" aria-hidden="true"></i>Before · Historical baseline</span><span><i class="key after" aria-hidden="true"></i>After · Hypothetical scenario</span></div>
+          <p id="comparison-scale" class="comparison-scale">CAD · One scale per pair, not across metrics. Amounts and changes are rounded separately.</p>
+          <div id="comparison-chart" role="group" aria-label="Before, After and Change" aria-describedby="comparison-scale"></div>
+          <div id="scenario-insight" class="scenario-insight" aria-live="polite" aria-atomic="true"><p id="result-explanation"></p><p id="result-supporting" hidden></p></div>
+          <details id="comparison-details" class="chart-details"><summary>View scenario details</summary><ul id="scenario-contributors"></ul><p id="runway-explanation"></p><p>Changes use full-precision values. Rounding amounts and changes separately can produce a one-cent difference from subtracting the displayed amounts.</p><div class="table-wrap"><table><caption>Baseline and scenario · amounts in CAD</caption><thead><tr><th scope="col">Metric</th><th scope="col">Before</th><th scope="col">After</th></tr></thead><tbody id="comparison-body"></tbody></table></div></details>
         </div>
       </section>
       <section class="planning-section" aria-labelledby="plan-title">

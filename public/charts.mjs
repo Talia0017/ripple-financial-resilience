@@ -1,4 +1,4 @@
-import {money, monthName} from "./dashboard.mjs";
+import {money, monthName, comparisonMetrics} from "./dashboard.mjs";
 
 const NS = "http://www.w3.org/2000/svg";
 const tickMoney = value => new Intl.NumberFormat("en-CA", {notation: "compact", maximumFractionDigits: 1}).format(value);
@@ -63,33 +63,46 @@ export function renderMonthlyChart(container, rows, tooltip) {
   tooltip.hidden = true;
 }
 
-export function renderComparisonChart(container, before, after, tooltip) {
-  const metrics = [["Money in", "income"], ["Spending", "spending"], ["Remaining buffer", "buffer_left"], ["Monthly shortfall", "monthly_shortfall"]];
-  const svg = canvas(container, "Baseline versus hypothetical scenario in CAD. Each pair uses the same scale; negative values extend left of zero.", 304);
-  svg.classList.add("comparison-svg");
-  const [min, max] = bounds(metrics.flatMap(([, key]) => [before[key], after[key]]));
-  const x = value => 156 + (value - min) / (max - min) * 445;
-  for (let i = 0; i <= 4; i++) {
-    const value = min + (max - min) * i / 4;
-    svg.append(node("line", {x1: x(value), x2: x(value), y1: 24, y2: 266, class: "grid-line"}));
-    svg.append(node("text", {x: x(value), y: 292, "text-anchor": "middle", class: "axis-label"}, tickMoney(value)));
+export function renderComparisonChart(container, before, after) {
+  const focused = container.contains(document.activeElement) ? document.activeElement.dataset.metric : null;
+  const rows = comparisonMetrics(before, after);
+  const html = (tag, text, className) => {
+    const item = document.createElement(tag);
+    if (text !== undefined) item.textContent = text;
+    if (className) item.className = className;
+    return item;
+  };
+  const fragment = document.createDocumentFragment();
+  for (const row of rows) {
+    const article = html("article", undefined, `comparison-metric ${row.changed ? "is-changed" : "is-unchanged"}`);
+    article.dataset.metric = row.key;
+    article.tabIndex = 0;
+    article.setAttribute("aria-label", `${row.label}. Before, historical baseline: ${money(row.before)}. After, hypothetical scenario: ${money(row.after)}. Change: ${row.change}, ${row.direction.toLowerCase()}.`);
+    article.append(html("h4", row.label));
+    const values = html("dl", undefined, "comparison-values");
+    for (const [label, value, series] of [["Before", row.before, "before"], ["After", row.after, "after"]]) {
+      const group = html("div", undefined, `comparison-${series}`);
+      const amount = html("dd", money(value));
+      amount.dataset.value = String(value);
+      group.append(html("dt", label), amount);
+      const svg = node("svg", {viewBox: "0 0 280 16", preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false", class: "pair-bar"});
+      const [minimum, maximum] = row.domain;
+      const x = number => 2 + (number - minimum) / (maximum - minimum) * 276;
+      svg.append(node("rect", {x: 2, y: 4, width: 276, height: 8, rx: 2, class: "bar-track"}));
+      // A true zero has no filled bar. Negative amounts extend left of the shared zero.
+      if (value !== 0) svg.append(node("rect", {x: Math.min(x(0), x(value)), y: 4, width: Math.abs(x(value) - x(0)), height: 8, rx: 2, class: series === "before" ? "bar-before" : "bar-after"}));
+      svg.append(node("line", {x1: x(0), x2: x(0), y1: 1, y2: 15, class: "zero-line"}));
+      group.append(svg);values.append(group);
+    }
+    const change = html("div", undefined, "comparison-change");
+    const delta = html("dd", row.change);
+    delta.dataset.value = String(row.delta);
+    delta.append(html("span", row.direction, "change-direction"));
+    change.append(html("dt", "Change"), delta);values.append(change);
+    article.append(values);fragment.append(article);
   }
-  svg.append(node("text", {x: 156, y: 13, class: "axis-label"}, "CAD · shared scale"));
-  svg.append(node("line", {x1: x(0), x2: x(0), y1: 24, y2: 266, class: "zero-line"}));
-  metrics.forEach(([label, key], index) => {
-    const top = 29 + index * 61;
-    svg.append(node("text", {x: 4, y: top + 23, class: "chart-metric-label"}, label));
-    const group = node("g");
-    [before[key], after[key]].forEach((value, series) => {
-      group.append(node("rect", {x: Math.min(x(0), x(value)), y: top + series * 19, width: Math.max(1, Math.abs(x(value) - x(0))), height: 13, rx: 2, class: series ? "bar-after" : "bar-before"}));
-    });
-    // Exact labels remain visible even when a small value has a very short bar.
-    svg.append(node("text", {x: 711, y: top + 11, "text-anchor": "end", class: "value-label"}, money(before[key])));
-    svg.append(node("text", {x: 711, y: top + 30, "text-anchor": "end", class: "value-label"}, money(after[key])));
-    interactive(group, `${label}: baseline ${money(before[key])}; scenario ${money(after[key])}.`, tooltip);
-    svg.append(group);
-  });
-  tooltip.hidden = true;
+  container.replaceChildren(fragment);
+  if (focused) container.querySelector(`[data-metric="${focused}"]`)?.focus({preventScroll: true});
 }
 
 export function renderStoryChart(container, story) {
