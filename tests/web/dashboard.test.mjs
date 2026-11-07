@@ -2,7 +2,7 @@ import {test} from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {decodeProfiles, simulate} from "../../public/engine.mjs";
-import {money, decodeHistory, monthlyInsights, runwayHeading, runwayExplanation, scenarioNarrative, savingsPlan, backupPlan, datasetStory} from "../../public/dashboard.mjs";
+import {money, decodeHistory, monthlyInsights, monthlySummary, runwayHeading, runwayExplanation, scenarioNarrative, scenarioSummary, savingsPlan, backupPlan, datasetStory} from "../../public/dashboard.mjs";
 
 // Synthetic edge cases stay separate from the official public assets.
 const profile = {income: 3000, spending: 2500, buffer: 5000, household_bills: 500};
@@ -14,6 +14,8 @@ test("history annotations use observed pairs, retain missing values and disclose
   assert.match(monthlyInsights([["2025-01", null, null]])[0], /not been replaced with zero/);
   assert.equal(money(null), "Unavailable");
   assert.equal(money(-200), "-$200.00");
+  assert.equal(monthlySummary([["2025-01", 100, 200], ["2025-02", null, 200]]), "1 of 1 recorded month had more money out than in. Incomplete months excluded.");
+  assert.equal(monthlySummary([["2025-01", null, null]]), "No complete monthly cash-flow pairs are available.");
 });
 test("runway language separates no shortfall, depleted buffers and the judging cap", () => {
   const baseline = simulate(profile);
@@ -32,6 +34,14 @@ test("combined scenario annotations reflect the unchanged official engine exactl
   assert.match(runwayExplanation(after), /4\.3 months/);
   assert.match(scenarioNarrative(before, before, false), /No shocks selected/);
   assert.match(scenarioNarrative(before, before, true), /amounts unchanged/);
+});
+test("compact scenario summaries retain monthly changes, one-time costs and depleted-buffer rules", () => {
+  const before = simulate(profile);
+  const after = simulate(profile, {job_loss: true, higher_bills: true, emergency_repair: true, repair_cost: 6000});
+  const summary = scenarioSummary(before, after, true);
+  for (const expected of ["Money in −$1,350.00/month", "Spending +$75.00/month", "Repair $6,000.00 once", "Shortfall $925.00/month", "zero-runway rule"]) assert.ok(summary.includes(expected), expected);
+  assert.match(scenarioSummary(before, before, false), /historical baseline/);
+  assert.match(scenarioSummary(before, before, true), /unchanged/);
 });
 test("savings contribution never exceeds surplus or the remaining goal", () => {
   const plan = savingsPlan(profile, simulate(profile));

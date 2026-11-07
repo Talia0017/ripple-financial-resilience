@@ -200,6 +200,18 @@ The overview is the primary experience, followed by hypothetical scenarios and
 supporting plans. Expandable details retain all official formulas. Historical
 records and hypothetical results are labelled separately throughout.
 
+The simplified interface uses large primary amounts, one monthly chart insight
+and compact shock selectors. Metric definitions use keyboard-accessible info
+disclosures. **More Financial Details** holds supporting amounts, baseline
+context and the monthly table. Parameters appear only for selected shocks.
+Estimated runway leads the scenario results, with a concise change summary and
+an optional Before/After table. Goal and backup plans show a short numerical
+summary; **View Plan** reveals the full figures and steps. A single **About the
+Data & Calculations** disclosure collects source information, formulas,
+assumptions, limitations and the verified research method. No financial or
+planning rules changed in this visual refinement. Five-second comprehension is
+a design goal; automated layout checks are not a usability study.
+
 The emergency goal is **3 × typical baseline spending**. Buffer progress uses
 the non-negative remaining scenario buffer, capped visually at the goal. A
 negative balance contributes zero; its deficit is still explained separately.

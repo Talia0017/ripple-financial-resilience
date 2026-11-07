@@ -42,6 +42,13 @@ export function monthlyInsights(rows) {
   return notes.length ? notes : ["Cash-flow values are missing for the recorded months in this view; they have not been replaced with zero."];
 }
 
+export function monthlySummary(rows) {
+  const complete = rows.filter(row => row.slice(1).every(Number.isFinite));
+  if (!complete.length) return "No complete monthly cash-flow pairs are available.";
+  const count = complete.filter(row => row[2] > row[1]).length;
+  return `${count} of ${complete.length} recorded ${complete.length === 1 ? "month" : "months"} had more money out than in.${complete.length < rows.length ? " Incomplete months excluded." : ""}`;
+}
+
 export function runwayHeading(result) {
   if (result.buffer_left <= 0) return "0.0 months";
   if (result.no_shortfall) return "No monthly shortfall";
@@ -68,6 +75,20 @@ export function scenarioNarrative(before, after, active) {
   if (!parts.length) parts.push("The selected assumptions leave these financial amounts unchanged.");
   parts.push(after.monthly_shortfall > 0 ? `The resulting monthly shortfall is ${money(after.monthly_shortfall)}.` : "There is no monthly shortfall under these assumptions.");
   return parts.join(" ");
+}
+
+// A scan-friendly summary; the full explanation remains in the comparison disclosure.
+export function scenarioSummary(before, after, active) {
+  if (!active) return "No shocks selected. Showing the historical baseline.";
+  const parts = [];
+  const incoming = after.income - before.income, spending = after.spending - before.spending;
+  if (incoming !== 0) parts.push(`Money in ${incoming < 0 ? "−" : "+"}${money(Math.abs(incoming))}/month`);
+  if (spending !== 0) parts.push(`Spending ${spending < 0 ? "−" : "+"}${money(Math.abs(spending))}/month`);
+  if (after.one_off_costs > 0) parts.push(`Repair ${money(after.one_off_costs)} once`);
+  if (!parts.length) return "The selected assumptions leave the baseline unchanged.";
+  parts.push(after.monthly_shortfall > 0 ? `Shortfall ${money(after.monthly_shortfall)}/month` : "No monthly shortfall");
+  if (after.buffer_left <= 0) parts.push("Buffer depleted: zero-runway rule applies");
+  return parts.join(" · ");
 }
 
 export function savingsPlan(profile, scenario) {

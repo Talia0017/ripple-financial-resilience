@@ -4,7 +4,7 @@ import {readFile, mkdir} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import path from "node:path";
 import {decodeProfiles, simulate} from "../../public/engine.mjs";
-import {money, monthlyInsights, runwayHeading, savingsPlan} from "../../public/dashboard.mjs";
+import {money, monthlySummary, runwayHeading, savingsPlan} from "../../public/dashboard.mjs";
 
 const {chromium} = await import(process.env.RIPPLE_BROWSER_TEST_MODULE || "playwright");
 const base = process.env.RIPPLE_TEST_URL || "http://127.0.0.1:8502";
@@ -52,11 +52,36 @@ try {
   await choose(page, profile);
   check(await page.locator("#metrics .metric").count() === 3, "Three primary metrics");
   check(!await page.locator("#job-loss").isChecked() && !await page.locator("#higher-bills").isChecked() && !await page.locator("#emergency-repair").isChecked(), "No shocks applied on selection");
+  for (const id of ["job-settings", "bill-settings", "repair-settings"]) check(await page.locator(`#${id}`).isHidden(), "Unselected shock parameters stay hidden");
+  check(await page.locator("#monthly-insights p").count() === 1, "One default monthly insight");
+  check(await page.locator(".metric-info[open]").count() === 0, "Metric definitions start collapsed");
+  const info = page.locator(".metric-info summary").first();
+  await info.focus();await page.keyboard.press("Enter");
+  check(await page.locator(".metric-info p").first().isVisible(), "Keyboard opens metric definition");
+  await page.keyboard.press("Enter");
+  check(await page.locator(".metric-info p").first().isHidden(), "Keyboard closes metric definition");
+  await page.locator("#financial-details summary").focus();await page.keyboard.press("Enter");
+  check(await page.locator("#supporting-metrics").isVisible(), "Supporting amounts available on demand");
+  await page.keyboard.press("Enter");
+  check(await page.locator("#supporting-metrics").isHidden(), "Supporting amounts collapse");
+  for (const id of ["goal-plan-details", "backup-plan-details"]) {
+    check(!await page.locator(`#${id}`).evaluate(item => item.open), "Plan starts summarized");
+    await page.locator(`#${id} summary`).focus();await page.keyboard.press("Enter");
+    check(await page.locator(`#${id}`).evaluate(item => item.open), "Keyboard reveals plan");
+    await page.keyboard.press("Enter");
+  }
+  check(await page.locator(".explanations details").count() === 1, "One data and calculations disclosure");
+  await page.locator("#about-data>summary").focus();await page.keyboard.press("Enter");
+  check(await page.locator("#dataset-detail").isVisible(), "Source information available by keyboard");
+  await page.keyboard.press("Enter");
+  await page.locator("#show-research-method").click();
+  check(await page.locator("#about-data").evaluate(item => item.open) && await page.locator("#research-method").evaluate(item => item === document.activeElement), "Research link reveals and focuses its method");
+  await page.locator("#about-data>summary").click();
   check(await page.locator("#baseline-runway").textContent() === runwayHeading(simulate(profile)), "Baseline uses official engine");
   check(await page.locator("#monthly-table tr").count() === 6, "Six actual monthly records");
   const actual = history.accounts[profile.account_id].slice(-6);
   check(await page.locator("#monthly-table tr").first().locator("td").first().textContent() === money(actual[0][1]), "Chart table matches source money in");
-  check(await page.locator("#monthly-insights p").first().textContent() === monthlyInsights(actual)[0], "Annotation matches exact observed months");
+  check(await page.locator("#monthly-insights p").first().textContent() === monthlySummary(actual), "Annotation matches exact observed months");
   await page.locator("#monthly-chart .chart-point").first().focus();
   check((await page.locator("#monthly-tooltip").textContent()).includes(money(actual[0][1])), "Keyboard chart tooltip");
   await page.locator("#history-twelve").click();
@@ -87,6 +112,14 @@ try {
   check(await page.locator("#baseline-runway").textContent() === runwayHeading(simulate(profile)), "Invalid scenario preserves baseline");
   await page.locator("#reset-scenario").click();
   check(!await page.locator("#job-loss").isChecked() && await page.locator("#ei-rate").inputValue() === "55" && await page.locator("#bill-rate").inputValue() === "15", "Reset defaults");
+  check(await page.locator("#job-settings").isHidden() && await page.locator("#bill-settings").isHidden() && await page.locator("#repair-settings").isHidden(), "Reset hides all parameters");
+  await page.locator("#job-loss").check();
+  check(await page.locator("#job-settings").isVisible() && await page.locator("#bill-settings").isHidden() && await page.locator("#repair-settings").isHidden(), "Only selected shock exposes parameters");
+  await page.locator("#goal-plan-details summary").click();
+  await page.locator("#ei-rate").fill("100");
+  check(await page.locator("#goal-plan-details").evaluate(item => item.open), "Live plan updates preserve expanded state");
+  await page.locator("#goal-plan-details summary").click();
+  await page.locator("#reset-scenario").click();
   const edgeProfiles = [all.find(p => p.buffer < 0), all.find(p => p.household_bills === 0), all.find(p => p.spending > p.income)];
   for (const edge of edgeProfiles.filter(Boolean)) {await choose(page, edge);check(await page.locator("#after-runway").textContent() === runwayHeading(simulate(edge)), "Real account edge case");}
   for (const index of [19, 927, 3441]) await choose(page, all[index]);
@@ -102,6 +135,8 @@ try {
   const mobile = await context({width: 375, height: 900});
   await ready(mobile.page);await choose(mobile.page, profile);
   await mobile.page.evaluate(() => window.scrollTo(0, 0));
+  check(await mobile.page.locator("#metrics .metric").last().evaluate(item => item.getBoundingClientRect().bottom <= innerHeight), "Three primary metrics fit the selected mobile viewport");
+  check(await mobile.page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize) >= 16), "Comfortable base text size");
   await mobile.page.screenshot({path: path.join(screenshots, "mobile-overview.png")});
   await mobile.page.screenshot({path: path.join(screenshots, "mobile-full.png"), fullPage: true});
   await mobile.page.locator("#job-loss").check();

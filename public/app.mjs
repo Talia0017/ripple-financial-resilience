@@ -1,5 +1,5 @@
 import {decodeProfiles, simulate} from "./engine.mjs";
-import {money, monthName, decodeHistory, monthlyInsights, runwayHeading, runwayExplanation, scenarioNarrative, savingsPlan, backupPlan, datasetStory} from "./dashboard.mjs";
+import {money, monthName, decodeHistory, monthlyInsights, monthlySummary, runwayHeading, runwayExplanation, scenarioNarrative, scenarioSummary, savingsPlan, backupPlan, datasetStory} from "./dashboard.mjs";
 import {renderMonthlyChart, renderComparisonChart, renderStoryChart} from "./charts.mjs";
 
 const $ = id => document.getElementById(id);
@@ -22,9 +22,11 @@ function clearSelection() {
   $("empty-state").hidden = false;
 }
 function setControls() {
-  $("ei-rate").disabled = !$("job-loss").checked;
-  $("bill-rate").disabled = !$("higher-bills").checked;
-  $("repair-cost").disabled = !$("emergency-repair").checked;
+  for (const [switchId, inputId, settingsId] of [["job-loss", "ei-rate", "job-settings"], ["higher-bills", "bill-rate", "bill-settings"], ["emergency-repair", "repair-cost", "repair-settings"]]) {
+    const enabled = $(switchId).checked;
+    $(inputId).disabled = !enabled;
+    $(settingsId).hidden = !enabled;
+  }
   $("ei-output").textContent = `${$("ei-rate").value}%`;
 }
 function resetScenario() {
@@ -52,15 +54,19 @@ function fillTable(id, rows) {
 }
 function renderPlans(after, active) {
   const plan = savingsPlan(selected, after);
-  const host = $("savings-plan");
+  const host = $("goal-plan-content");
   host.replaceChildren();
+  $("goal-progress").hidden = !plan;
+  $("goal-summary").textContent = !plan ? "Not available" : plan.remaining === 0 ? "Target met" : money(plan.remaining);
+  $("goal-caption").textContent = !plan ? "Valid spending and scenario data needed." : plan.remaining === 0 ? `${money(plan.goal)} three-month spending target.` : `remaining toward a ${money(plan.goal)} three-month spending target.`;
+  if (plan) {$("goal-progress").max = plan.goal;$("goal-progress").value = Math.min(plan.available, plan.goal);}
+  const belowZero = after && after.buffer_left < 0;
+  $("backup-summary").textContent = !after ? "Not available" : belowZero ? `${money(-after.buffer_left)} below zero` : after.monthly_shortfall > 0 ? `${money(after.monthly_shortfall)}/month` : after.buffer_left === 0 ? "No buffer remaining" : `${money(after.income - after.spending)}/month`;
+  $("backup-caption").textContent = !after ? "Review the scenario inputs." : belowZero ? "Address the estimated balance deficit." : after.monthly_shortfall > 0 ? "Close the estimated monthly gap." : after.buffer_left === 0 ? "Review how to restore an estimated reserve." : "Estimated surplus to review.";
   if (!plan) host.append(element("p", "A positive spending estimate and valid scenario data are needed to calculate a meaningful savings goal.", "notice"));
   else {
     const goal = element("p", money(plan.goal), "goal-number");
     goal.append(element("small", "Three months of typical baseline spending"));
-    const progress = element("progress", `${(plan.progress * 100).toFixed(1)}%` , "goal-progress");
-    progress.max = plan.goal; progress.value = Math.min(plan.available, plan.goal);
-    progress.setAttribute("aria-label", "Estimated remaining scenario buffer toward the three-month spending goal");
     const figures = element("dl", undefined, "plan-figures");
     for (const [label, value] of [["Buffer toward goal · current scenario", money(plan.available)], ["Remaining target", money(plan.remaining)], ["Potential monthly contribution", money(plan.contribution)], ["Estimated time to goal", plan.months === null ? "Not estimable" : plan.months === 0 ? "Target met" : `${plan.months.toLocaleString("en-CA")} months`]]) {
       const group = element("div");group.append(element("dt", label), element("dd", value));figures.append(group);
@@ -68,7 +74,7 @@ function renderPlans(after, active) {
     const note = plan.remaining === 0 ? "The estimated buffer meets this example target. A balance estimate is not proof of accessible savings."
       : plan.contribution > 0 ? `Illustration: set aside half of the current scenario's ${money(plan.surplus)} estimated monthly surplus, limited to the remaining target. Timing assumes unchanged cash flow, no interest and no further shocks.`
       : "No positive monthly surplus is available under this scenario. No contribution or completion date is suggested. Review the gap before planning a contribution.";
-    host.append(goal, progress, figures, element("p", note, "fineprint"));
+    host.append(goal, figures, element("p", note, "fineprint"));
     if (after.buffer_left < 0) host.append(element("p", "A negative balance contributes zero toward this goal; the below-zero amount remains a separate issue to address.", "fineprint"));
   }
   $("backup-plan").replaceChildren(...(after ? backupPlan(after, active) : ["Scenario data is unavailable. Resolve missing account values or invalid assumptions before using a backup plan."]).map(text => element("li", text)));
@@ -100,7 +106,8 @@ function updateComparison() {
     ]);
     $("after-runway").textContent = runwayHeading(after);
     $("runway-explanation").textContent = runwayExplanation(after);
-    $("result-explanation").textContent = scenarioNarrative(before, after, count > 0);
+    $("result-explanation").textContent = scenarioSummary(before, after, count > 0);
+    $("scenario-detail-explanation").textContent = scenarioNarrative(before, after, count > 0);
     message($("scenario-error"), "");
     $("comparison").hidden = false;
     renderPlans(after, count > 0);
@@ -117,7 +124,9 @@ function renderHistory() {
   $("history-twelve").setAttribute("aria-pressed", String(historyWindow === 12));
   $("history-status").textContent = `${rows.length} recorded ${rows.length === 1 ? "month" : "months"} · ${monthName(rows[0][0])} – ${monthName(rows.at(-1)[0])}`;
   renderMonthlyChart($("monthly-chart"), rows, $("monthly-tooltip"));
-  $("monthly-insights").replaceChildren(...monthlyInsights(rows).map(text => element("p", text)));
+  const insights = monthlyInsights(rows);
+  $("monthly-insights").replaceChildren(element("p", monthlySummary(rows)));
+  $("additional-monthly-insight").textContent = insights.slice(1).join(" ");
   fillTable("monthly-table", rows.map(([month, incoming, outgoing]) => [monthName(month), money(incoming), money(outgoing)]));
   $("history-note").textContent = `Showing the most recent ${rows.length} available records, up to ${historyWindow}. Accounts may have fewer records or gaps between months. Monthly values come directly from the official source, not from the summary medians.`;
   $("history-content").hidden = false;
@@ -170,7 +179,13 @@ function chooseAccount(accountId) {
   $("metrics").replaceChildren(...definitions.map(([label, key, help]) => {
     const card = element("article", undefined, "metric");
     const value = element("strong", money(profile[key]));value.dataset.metric = key;
-    card.append(element("p", label, "metric-label"), value, element("p", help, "definition"));return card;
+    const heading = element("div", undefined, "metric-heading");
+    const info = element("details", undefined, "metric-info");
+    const trigger = element("summary", "i");
+    trigger.setAttribute("aria-label", `About ${label}`);
+    info.append(trigger, element("p", help));
+    heading.append(element("p", label, "metric-label"), info);
+    card.append(heading, value);return card;
   }));
   $("supporting-metrics").replaceChildren(...[
     ["Typical Fixed Costs", "fixed_costs", "Bills, insurance and loan payments"],
@@ -196,7 +211,7 @@ function chooseAccount(accountId) {
 function renderDiscovery() {
   const story = datasetStory(profiles);
   if (!story) {$("story-insight").textContent = "There is insufficient valid data to establish the near-median inflow comparison.";$("story-chart").replaceChildren();return;}
-  $("story-insight").textContent = `Among ${story.sample} accounts with typical monthly money in within 5% of the dataset median, ${story.groups[1].count} had typical spending above money in. Similar inflows do not describe the whole financial position.`;
+  $("story-insight").textContent = `${story.groups[1].count} of ${story.sample} accounts with similar typical money in had typical spending above money in.`;
   renderStoryChart($("story-chart"), story);
   $("story-method").textContent = `We used ${story.valid.toLocaleString("en-CA")} accounts with valid money-in and spending summaries out of ${story.total.toLocaleString("en-CA")}. The median money in is ${money(story.median)}. The inclusive band is 95%–105% of that median (approximately ${money(story.lower)}–${money(story.upper)}), giving ${story.sample} accounts. We compared each account's unrounded all-history median spending with its unrounded all-history median money in. Percentages use this ${story.sample}-account band as the denominator.`;
   $("story-buffers").textContent = story.groups.map(group => `${group.label}: median estimated buffer ${money(group.medianBuffer)} (${group.bufferCount} valid buffer estimates among ${group.count} accounts)`).join(". ") + ". These are historical balance estimates, not accessible savings.";
@@ -235,3 +250,20 @@ $("retry-history").addEventListener("click", () => {historyPromise = null;loadHi
 for (const id of ["job-loss", "higher-bills", "emergency-repair", "ei-rate", "bill-rate", "repair-cost"]) $(id).addEventListener("input", updateComparison);
 for (const [id, count] of [["history-six", 6], ["history-twelve", 12]]) $(id).addEventListener("click", () => {historyWindow = count;renderHistory();});
 loadProfiles();
+
+$("show-research-method").addEventListener("click", () => {
+  $("about-data").open = true;
+  $("research-method").tabIndex = -1;
+  $("research-method").focus();
+  $("research-method").scrollIntoView({block: "start"});
+});
+// Reflow chart geometry when the available width changes; numeric values stay intact.
+let lastChartWidth = 0;
+new ResizeObserver(entries => {
+  const width = Math.round(entries[0].contentRect.width);
+  if (!width || width === lastChartWidth) return;
+  lastChartWidth = width;
+  if (selectedHistory) renderHistory();
+  if (selected) updateComparison();
+  if (profiles.size) renderDiscovery();
+}).observe($("monthly-chart"));
