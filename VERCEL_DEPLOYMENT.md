@@ -32,20 +32,36 @@ written in English. Chinese is permitted only in direct Codex chat with the owne
 | Framework Preset | **Other** |
 | Root Directory | Repository root: `./`, not `financial_resilience` or `public` |
 | Install Command | `npm ci --ignore-scripts` |
-| Build Command | `npm run build` |
-| Output Directory | `dist` |
+| Build Command | Empty: enable Override and clear the field to skip the build step |
+| Output Directory | `public` |
 | Node.js Version | 22 or a newer supported version |
 | Environment Variables | None required. Remove `PORT` and local CSV paths configured for the earlier container setup. |
 | Start Command / Python / Docker | Not required |
 
-The build settings are also declared in `vercel.json`.
+The settings are declared in `vercel.json`: `buildCommand` is an empty string
+and `outputDirectory` is `public`. These values override the corresponding
+Vercel Project Settings. Keep the dashboard consistent with the table above.
 For a previously configured Container project, update **Settings → Build and
 Deployment**, then choose **Redeploy**. Replace the old framework, startup and
 output-directory overrides with the values above.
 
-Vercel builds from the committed Node script and `public/` assets. It does not
-access your computer or rerun Python. The build verifies that all 4,500 profiles
-are present, then copies only the five required website files into `dist/`.
+The website entrypoint is `public/index.html`. Its CSS, JavaScript modules and
+`data/profiles.json` already exist beside it, ready to serve. Vercel publishes
+`public/` directly without compiling, copying files or rerunning Python.
+The local `npm run build` command remains available as a validation check for
+all five website assets and all 4,500 account profiles; deployment does not need it.
+
+### Why the missing output-directory error occurred
+
+The previous configuration required `dist/`, a directory created only by an
+extra copy step. The reported error means that the failed deployment finished
+without that expected directory. Without its full build log, it is not possible
+to establish whether the old command was skipped or the project root differed.
+Neither possibility requires a generated directory for this static website.
+
+The fix removes that dependency by serving the committed `public/` directory.
+Do not add an empty `dist/` to silence the error or change only the dashboard:
+the repository's `vercel.json` is authoritative for the output directory.
 
 ## Verify a live deployment
 
@@ -69,11 +85,11 @@ fonts, CDN scripts, API keys or developer-specific file paths.
 npm ci --ignore-scripts
 npm test
 npm run build
-python3 -m http.server 8502 --bind 127.0.0.1 --directory dist
+python3 -m http.server 8502 --bind 127.0.0.1 --directory public
 ```
 
 Open http://localhost:8502. Use HTTP rather than opening the HTML file directly.
-The static server exposes only `dist/`, which contains no raw CSVs, Python
+The static server exposes only `public/`, which contains no raw CSVs, Python
 environment, Git credentials or server source code.
 
 ## Update and verify the data

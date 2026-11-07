@@ -56,15 +56,16 @@ npm test
 npm run build
 ```
 
-There are no third-party npm dependencies. The build copies only the website's
-five required files into `dist/` and validates all 4,500 bundled profiles.
+There are no third-party npm dependencies. `npm run build` validates the
+website's five existing files in `public/` and all 4,500 bundled profiles.
+It does not compile assets or generate a separate output directory.
 No CSV, Python, virtual environment or developer-specific path is needed to build
 or run this public version.
 
-To preview, serve `dist/` with any static HTTP server. If Python is installed:
+To preview, serve `public/` with any static HTTP server. If Python is installed:
 
 ```sh
-python3 -m http.server 8502 --bind 127.0.0.1 --directory dist
+python3 -m http.server 8502 --bind 127.0.0.1 --directory public
 ```
 
 Open http://localhost:8502. Do not double-click `index.html` via `file://` because
@@ -74,9 +75,10 @@ browser module and fetch security rules require HTTP.
 
 Import `Talia0017/ripple-financial-resilience`, production branch `main`.
 Use **Framework Preset: Other**, **Root Directory: ./**, **Build Command:
-`npm run build`**, **Install Command: `npm ci --ignore-scripts`**,
-**Output Directory: `dist`**. No environment variables or `PORT` are required.
-`vercel.json` declares these settings. Remove any old Container/Streamlit build
+empty (enable Override and clear the field)**, **Install Command:
+`npm ci --ignore-scripts`**, **Output Directory: `public`**. No environment
+variables or `PORT` are required. `vercel.json` declares these settings and
+overrides the corresponding dashboard settings. Remove old Container/Streamlit build
 overrides if an existing Vercel project was configured for the earlier approach.
 See the [full Chinese guide](VERCEL_DEPLOYMENT.md) for deployment verification.
 

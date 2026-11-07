@@ -34,9 +34,10 @@ credentials or put tokens into tracked files or command URLs.
 ## Architecture and checks
 
 - Public website: `public/` — buildless HTML/CSS/JavaScript and complete account
-  profiles. `npm run build` copies five allowlisted assets to `dist/`.
-- Vercel: Other framework, repo root, `npm ci --ignore-scripts`, `npm run build`,
-  output `dist`. No Docker, Python runtime, database or environment variables.
+  profiles. `npm run build` validates the existing assets without copying them.
+- Vercel: Other framework, repo root, `npm ci --ignore-scripts`, empty Build
+  Command, output `public`. No generated output directory is needed. No Docker,
+  Python runtime, database or environment variables.
 - Preserved Python engine/local Streamlit app: `financial_resilience/`.
 - Run `npm test` and `npm run build` for website changes.
 - Python: `financial_resilience/.venv/bin/python -m unittest discover -s financial_resilience/tests -v`.

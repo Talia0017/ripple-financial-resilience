@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "npm run build",
+  "buildCommand": "",
   "installCommand": "npm ci --ignore-scripts",
-  "outputDirectory": "dist",
+  "outputDirectory": "public",
   "headers": [
     {"source": "/(.*)", "headers": [
       {"key": "X-Content-Type-Options", "value": "nosniff"},
