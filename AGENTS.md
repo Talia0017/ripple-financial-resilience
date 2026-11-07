@@ -1,49 +1,50 @@
-# Workspace development instructions
+# Ripple workspace instructions
 
-This repository contains **Ripple — Financial Resilience Engine**, built for
-Sheridan Datathon 2026, Tangerine Track. Communicate with the project owner in
-simple Chinese. Preserve existing work and the official calculation rules.
+Communicate with the owner in simple Chinese. Preserve the official calculations
+and existing work. This is Sheridan Datathon 2026 — Tangerine Track.
 
-## Authorized development and Git workflow
+## Authorized Git workflow
 
-The owner has explicitly requested the following workflow for future development
-in this workspace, unless they give different instructions for a specific task:
+Unless the owner instructs otherwise for a specific task:
 
-1. Implement the requested change and run the relevant available tests.
-2. Review the actual Git diff and the exact files to be committed for secrets,
-   private information, raw banking data, generated customer reports, and large
-   unnecessary artifacts. Do not assume `.gitignore` alone proves safety.
-3. If the change is safe and tests pass, create a descriptive Git commit and push
-   to `origin/main`. This workflow is already authorized; do not ask again merely
-   to commit or push ordinary safe code changes.
-4. Verify the remote `main` commit matches the intended local commit. Report the
-   result accurately. If authentication, network, permissions, tests, conflicts,
-   or remote changes block a push, explain the issue explicitly.
+1. Implement changes and run relevant tests.
+2. Review the actual Git diff and exact staged files for secrets, unrelated
+   personal information, accidental raw data, local environments and large files.
+3. If safe and tests pass, commit descriptively and push to `origin/main`.
+   The owner has already authorized this routine workflow; do not ask again.
+4. Verify the remote commit matches the intended local commit and report the
+   result. Explicitly explain failures, blocked authentication or conflicts.
 
-Use the HTTPS origin:
-`https://github.com/Talia0017/ripple-financial-resilience.git`.
-Never force-push, rewrite unrelated remote history, or discard someone else's
-changes. Inspect/fetch remote state and integrate changes carefully when needed.
-Stage intended files explicitly; do not include unrelated work without review.
-Never print credentials, put tokens in URLs, or commit authentication material.
+Origin: `https://github.com/Talia0017/ripple-financial-resilience.git`.
+Never force-push or discard unrelated local/remote work. Fetch and inspect remote
+state before integrating changes; stage intended files explicitly. Never print
+credentials or put tokens into tracked files or command URLs.
 
-## Project and verification
+## Architecture and checks
 
-- App: `financial_resilience/app.py` (Python, Pandas, Streamlit).
-- From the repo root, run the synthetic unit and Streamlit AppTest suite with:
-  `financial_resilience/.venv/bin/python -m unittest discover -s financial_resilience/tests -v`.
-- If the official local datasets are available and data/calculation behavior
-  changes, also run:
-  `financial_resilience/.venv/bin/python financial_resilience/verify_real_data.py`.
-- If the virtual environment is absent, follow the root README setup steps.
-- Do not claim browser visual verification based only on Streamlit AppTest.
+- Public website: `public/` — buildless HTML/CSS/JavaScript and complete account
+  profiles. `npm run build` copies five allowlisted assets to `dist/`.
+- Vercel: Other framework, repo root, `npm ci --ignore-scripts`, `npm run build`,
+  output `dist`. No Docker, Python runtime, database or environment variables.
+- Preserved Python engine/local Streamlit app: `financial_resilience/`.
+- Run `npm test` and `npm run build` for website changes.
+- Python: `financial_resilience/.venv/bin/python -m unittest discover -s financial_resilience/tests -v`.
+- If calculations or profiles change and source CSVs are available, regenerate
+  with `financial_resilience/.venv/bin/python financial_resilience/export_profiles.py`
+  and run both `verify_real_data.py` and `verify_web_profiles.py` in that folder.
+- Never claim a live website based only on a build or push. Check the actual URL
+  and `/data/profiles.json`. Distinguish Node/Streamlit tests from browser checks.
 
-## Data and scope
+## Data permission (updated 2026-11-07)
 
-Official CSVs stay in the root `data/` folder or `RESILIENCE_DATA_DIR`. Their public
-redistribution permission has not been established. Do not upload raw files,
-row excerpts, customer exports, or screenshots exposing customer financial data
-unless explicit redistribution permission is established and the owner requests
-that publication. Keep synthetic test fixtures clearly identified and separate.
-No fabricated customer records in the application. No deployment is authorized
-by the Git commit/push workflow alone.
+The owner confirmed with the organizers that the official challenge datasets may
+be publicly used and contain no real customer records. This supersedes earlier
+restricted-data instructions. Publication of the derived official account
+profiles at `public/data/profiles.json` is explicitly authorized.
+
+Keep raw CSVs in `data/` or `RESILIENCE_DATA_DIR`; they stay ignored for size and
+are not needed by the deployed site. Preserve source attribution and full
+calculation precision. Do not publish unrelated personal information or secrets.
+Synthetic fixtures must stay identified as tests; no fabricated app fallbacks.
+Public data permission does not authorize changing formulas or publishing user
+credentials. The owner requested Vercel; do not deploy to another hosting service.

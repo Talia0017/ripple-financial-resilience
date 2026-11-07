@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Ripple Financial Resilience Engine — explore all official Tangerine challenge accounts and simulate financial shocks.">
+  <meta name="theme-color" content="#12685c">
+  <title>Ripple — Financial Resilience Engine</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <a class="skip" href="#main">跳到主要内容</a>
+  <header class="topbar"><a class="brand" href="./"><span class="ripple-mark" aria-hidden="true"></span>Ripple<span class="brand-sub">Financial Resilience Engine</span></a><span class="track">SHERIDAN DATATHON 2026 <b>·</b> TANGERINE TRACK</span></header>
+  <main id="main">
+    <section class="intro"><div><p class="eyebrow">RESILIENCE REWIRED</p><h1>当生活改变，你的缓冲能撑多久？</h1><p class="lead">了解一个账户，尝试不同冲击，看看每个选择如何影响财务续航。</p></div><div class="data-status"><span class="status-dot" aria-hidden="true"></span><span id="data-status" role="status">正在加载官方账户资料…</span></div></section>
+    <section class="panel lookup" aria-labelledby="lookup-title"><div><p class="step">01 / KNOW THE CUSTOMER</p><h2 id="lookup-title">选择一个官方挑战账户</h2><p class="muted">使用主办方允许公开使用的挑战数据，不包含真实客户资料。</p></div>
+      <form id="lookup-form"><label for="account-id">Account ID · 输入或搜索账户</label><div class="search-row"><input id="account-id" name="account-id" type="text" list="account-options" autocomplete="off" placeholder="加载后输入账户 ID" disabled><datalist id="account-options"></datalist><button id="lookup-button" type="submit" disabled>查看账户 <span aria-hidden="true">↗</span></button></div><button id="random-account" class="text-button" type="button" disabled>随机选择一个账户</button><p id="lookup-error" class="error" role="alert" hidden></p></form>
+      <div id="load-error" class="notice error" role="alert" hidden><p id="load-error-text"></p><button id="retry-load" type="button">重新加载账户资料</button></div>
+    </section>
+    <div id="empty-state" class="empty-state"><span class="empty-ripple" aria-hidden="true">◎</span><h2>先了解起点，再探索可能。</h2><p>选择账户后，收入、开支和冲击结果会显示在这里。</p></div>
+    <div id="dashboard" hidden>
+      <section aria-labelledby="overview-title"><div class="section-heading"><div><p class="step">YOUR FINANCIAL STARTING POINT</p><h2 id="overview-title">客户财务概况</h2></div><p id="account-history" class="muted"></p></div><div id="data-warnings" aria-live="polite"></div>
+        <div class="metrics" id="metrics"></div>
+        <div class="baseline panel"><div><p class="metric-label">Baseline Financial Runway · 基准财务续航</p><p id="baseline-runway" class="runway-value"></p></div><p class="muted">按官方简化公式，现有缓冲金可以覆盖月度资金缺口的月数。<br>这不是逐月预测，也不代表 EI 会永久持续。</p></div>
+      </section>
+      <section class="shock-section" aria-labelledby="shock-title"><div class="section-heading"><div><p class="step">02 / TAKE A SHOCK</p><h2 id="shock-title">如果意外发生，会怎样？</h2><p class="muted">可以同时开启多种冲击；数值会即时更新。</p></div><button id="reset-scenario" class="secondary" type="button">重置情景 ↺</button></div>
+        <div class="shock-grid">
+          <fieldset class="panel shock-card"><legend><label class="toggle-label"><input id="job-loss" type="checkbox"><span>失业 <small>Job Loss</small></span></label></legend><label for="ei-rate">EI 收入替代率 <output id="ei-output" for="ei-rate">55%</output></label><input id="ei-rate" type="range" min="0" max="100" step="1" value="55" disabled><p class="formula">冲击后收入 = I × 替代率</p><p class="muted">55% 是比赛默认参数，未核验实际 EI 资格或给付期限。</p></fieldset>
+          <fieldset class="panel shock-card"><legend><label class="toggle-label"><input id="higher-bills" type="checkbox"><span>家庭账单上涨 <small>Higher Bills</small></span></label></legend><label for="bill-rate">家庭账单涨幅（%）</label><input id="bill-rate" type="number" min="0" step="any" value="15" disabled><p class="formula">冲击后支出 = S + H × 涨幅</p><p class="muted">只增加家庭账单部分，不对全部开支加价。</p></fieldset>
+          <fieldset class="panel shock-card"><legend><label class="toggle-label"><input id="emergency-repair" type="checkbox"><span>紧急维修 <small>Emergency Repair</small></span></label></legend><label for="repair-cost">一次性维修费用</label><input id="repair-cost" type="number" min="0" step="any" value="0" disabled><p class="formula">剩余缓冲金 = B − 维修费</p><p class="muted">默认费用为一个月典型支出 S，只扣除一次。</p></fieldset>
+        </div><p id="scenario-error" class="notice error" role="alert" hidden></p>
+      </section>
+      <section class="panel comparison" aria-labelledby="comparison-title"><div class="comparison-heading"><div><p class="step">BEFORE / AFTER</p><h2 id="comparison-title">看清变化，理解你的缓冲。</h2></div><div class="after-runway"><span>冲击后财务续航</span><strong id="after-runway" aria-live="polite"></strong></div></div><div class="table-wrap"><table><thead><tr><th scope="col">指标</th><th scope="col">冲击前</th><th scope="col">冲击后</th></tr></thead><tbody id="comparison-body"></tbody></table></div><p id="result-explanation" class="notice" aria-live="polite"></p><p class="fineprint">每月资金缺口 = max(支出 − 收入, 0)。金额沿用官方数据单位，未假设为加元。数值续航最多 120 个月，显示一位小数。</p></section>
+    </div>
+    <section class="explanations"><details><summary>这些财务指标是什么意思？</summary><dl><dt>I · 典型月收入</dt><dd>所有已有月份 money_in 的中位数。</dd><dt>S · 典型月支出</dt><dd>money_out 的中位数，已经包含贷款付款。</dd><dt>F · 典型固定开支</dt><dd>先逐月相加 household_bills + insurance + loan_payments，再取中位数。不能把三个字段的中位数直接相加。</dd><dt>B · 储蓄缓冲金</dt><dd>按月份排序，最后六行 avg_daily_balance 的平均值。不足六个月使用已有月份并提示。这是历史余额代理值，不是实时可用存款。</dd><dt>H · 家庭账单</dt><dd>household_bills 的中位数。</dd><dt>P · 贷款月供</dt><dd>截至 2025-12-31 已开始、状态为 C/D 的贷款 monthly_payment 之和。A/B 为 0，无贷款记录为 0，未知数据不假设为 0。P 和 F 不再额外加到支出 S。</dd></dl><p>中位数就是把各月金额排序后取中间值。缺失金额不补成 0；相关指标使用有效记录并显示限制。B 不向六行窗口以外借用旧值。</p></details><details><summary>官方续航公式与模型限制</summary><div class="formula-block"><p>buffer_left = B − one_off_costs</p><p>gap = spending_after − income_after</p><p>① buffer_left ≤ 0 → 0 个月</p><p>② 否则 gap ≤ 0 → No shortfall (120+)</p><p>③ 其他情况 → min(buffer_left / gap, 120)</p></div><p>“No shortfall (120+)”是比赛标签，表示当前固定参数下没有月度缺口，不表示未来 120 个月都有保障。缓冲金已耗尽时，即使月收入足够支付月开支，也按官方规则显示 0。</p><p>本模型不核验 EI 资格、上限或发放期限，不模拟税费、利息、通胀和行为变化，也不是逐月现金流预测。个性化储蓄目标和备用计划将在下一阶段实现。</p></details><details><summary>数据来源与可核对性</summary><p>数据来自 Sheridan Datathon 2026 — Tangerine Track 主办方提供的官方挑战资料：monthly_summary.csv 与 loans.csv。项目负责人已向主办方确认可公开使用，数据不包含真实客户记录。</p><p id="dataset-detail">正在读取数据说明。</p><p>网页使用完整精度的预计算账户摘要，不依赖开发者电脑上的文件。所有冲击在你的浏览器内计算。原始逐月记录仍可在本地 Streamlit 版查看。</p><a href="https://github.com/Talia0017/ripple-financial-resilience" target="_blank" rel="noopener noreferrer">查看源码、数据署名与测试 ↗</a></details></section>
+  </main><footer><span class="brand">Ripple</span><p>Understand your cushion. Explore what changes.</p><small>Sheridan Datathon 2026 · Tangerine Track · AI-assisted development disclosed in README.</small></footer>
+  <noscript><p class="notice error">请启用 JavaScript，才能加载账户和进行冲击模拟。</p></noscript>
+</body>
+</html>

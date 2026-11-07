@@ -1,50 +1,48 @@
-# Official datasets — local files only
+# Official Tangerine challenge data
 
-Ripple uses `monthly_summary.csv` and `loans.csv` supplied to authorized
-participants of **Sheridan Datathon 2026 — Tangerine Track**. Credit belongs to
-the event organizers and the track's data providers. The repository does not
-grant rights to the data.
+Source: **Sheridan Datathon 2026 — Tangerine Track**. Credit belongs to the event
+organizers and track data providers; Ripple does not claim ownership.
 
-The project owner has confirmed restricted access only, with no public display.
-No public redistribution license was supplied with the local files, so the raw
-banking datasets are intentionally excluded from Git. Do not attach CSVs or
-customer-level exports to issues, pull requests or public demo artifacts.
+On 2026-11-07, the project owner reported organizer confirmation that these
+challenge datasets may be publicly used because they contain no real customer
+data. This supersedes the earlier restricted-access assumption.
 
-## How to obtain the files
+The public website publishes compact, derived profiles for every official
+account in `public/data/profiles.json`. Raw CSVs remain Git-ignored to keep the
+repository and deployment small, rather than because public use is forbidden.
+No credentials, unrelated personal data or additional datasets are authorized
+for publication by this confirmation.
 
-1. Use the official Tangerine Track resources shared by the Datathon organizers.
-2. If you lack access, contact the organizers for authorization and download
-   instructions. There is no public dataset download bundled with Ripple.
-3. Save the official files under their original names in this directory:
-   `data/monthly_summary.csv` and `data/loans.csv`.
-4. Alternatively, set `RESILIENCE_DATA_DIR` to another directory containing both
-   files. No code edit is required.
+## Obtain and regenerate
 
-For the project owner: your existing CSVs remain in this local folder. Uploading
-code to GitHub does not move, delete or publish them.
+Use the organizers' official Tangerine Track resources to obtain:
 
-## Required schema
+- `data/monthly_summary.csv`
+- `data/loans.csv`
 
-`monthly_summary.csv` requires:
+Alternatively set `RESILIENCE_DATA_DIR` to a directory containing both files.
+Then run `financial_resilience/.venv/bin/python financial_resilience/export_profiles.py`.
+The website itself does not need these CSVs: it loads the committed public JSON.
+
+## Required columns
+
+`monthly_summary.csv`:
 
 ```text
 account_id, month, money_in, money_out, household_bills,
 insurance, loan_payments, avg_daily_balance
 ```
 
-`month` uses `YYYY-MM`. Account IDs are read as text to retain leading zeroes.
-Other official columns may be present and are preserved by the loader.
+`month` uses `YYYY-MM`; account IDs are kept as text.
 
-`loans.csv` requires:
+`loans.csv`:
 
 ```text
 account_id, monthly_payment, status, loan_start
 ```
 
-`loan_start` uses `YYYY-MM-DD`. Statuses C/D mean running at the official
-year-end-2025 snapshot; A/B mean finished. `loan_id`, when supplied, is used to
-detect duplicates. Do not infer additional data licensing terms from this schema.
+`loan_start` uses `YYYY-MM-DD`; C/D are running statuses at the official
+2025-year-end snapshot. `loan_id`, if present, is used for duplicate detection.
 
-The automated test suite generates explicitly synthetic fixtures and can run
-without either official file. The actual app never substitutes synthetic
-customers when official data is unavailable.
+Synthetic edge-case fixtures exist only in automated tests and never replace
+missing official profiles on the public website.

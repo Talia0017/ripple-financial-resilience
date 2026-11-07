@@ -41,8 +41,8 @@ build/
 dist/
 .ipynb_checkpoints/
 
-# Raw banking data and generated financial exports: local access only.
-# Public redistribution permission has not been established.
+# Raw source files stay local for size. Approved derived challenge profiles
+# are tracked at public/data/profiles.json (organizer permission confirmed).
 /data/*
 !/data/README.md
 *.csv

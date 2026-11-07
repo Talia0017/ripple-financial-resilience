@@ -1,11 +1,10 @@
-# CLI uploads: deny everything except the container configuration and app code.
+# Static Vercel deployment: include only the frontend and its build inputs.
 /*
-!Dockerfile
-!.dockerignore
 !vercel.json
-!financial_resilience/
-/financial_resilience/*
-!financial_resilience/requirements.txt
-!financial_resilience/app.py
-!financial_resilience/data_access.py
-!financial_resilience/engine.py
+!package.json
+!package-lock.json
+!scripts/
+/scripts/*
+!scripts/build.mjs
+!public/
+!public/**
