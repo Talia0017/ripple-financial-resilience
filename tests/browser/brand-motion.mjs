@@ -97,11 +97,15 @@ try{
   check(await page.locator('.comparison-metric[data-metric="income"] .comparison-after .bar-after, .comparison-metric[data-metric="income"] .comparison-after .water-sheen').count()===0,"Zero scenario amounts have neither a fake filled bar nor a moving water surface");
   await page.locator("#reset-scenario").click();check(await page.locator(".is-flowing,.shock-wave").count()===0,"Reset removes pending and active feedback");
   await page.emulateMedia({reducedMotion:"no-preference"});
-  const suppress=await page.addStyleTag({content:".shock-wave,.ripple-impact,.is-flowing .water-sheen{animation:none!important}"});
+  // Use the same-origin stylesheet so fault injection respects the production CSP.
+  const suppressionIndex=await page.evaluate(()=>{
+   const sheet=[...document.styleSheets].find(item=>item.href?.endsWith("/styles.css"));
+   return sheet.insertRule(".shock-wave,.ripple-impact,.is-flowing .water-sheen{animation:none!important}",sheet.cssRules.length);
+  });
   await page.locator("#job-loss").check();
   await page.waitForFunction(()=>!document.querySelector(".shock-wave,.ripple-source,.ripple-impact,.is-flowing"),null,{timeout:3000});
   check(await page.locator(".shock-wave,.ripple-source").count()===0,"Fallback cleanup removes feedback even if animation events never fire");
-  await suppress.evaluate(item=>item.remove());
+  await page.evaluate(index=>[...document.styleSheets].find(item=>item.href?.endsWith("/styles.css")).deleteRule(index),suppressionIndex);
   await checkFooter(page,width);
   await ctx.close();
  }
