@@ -1,4 +1,4 @@
-// Real-browser checks for palette semantics, contrast, static scenarios and unchanged amounts.
+// Real-browser checks for palette semantics, contrast, restored historical motion and unchanged amounts.
 import assert from "node:assert/strict";
 import {mkdir,writeFile,readFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
@@ -27,9 +27,19 @@ async function checkSignedChanges(page){
  }
  return badges;
 }
-async function checkStaticScenario(page){
- check(await page.locator(".shock-wave,.ripple-impact,.ripple-source,.water-sheen,.is-flowing,#goal-water").count()===0,"Scenario interactions never create decorative ripple or water elements");
- check(await page.evaluate(()=>document.getAnimations().filter(item=>item.effect?.target?.closest?.(".scenario-workspace")).length===0),"Scenario controls and results update without replacement animations");
+async function checkNoExpandingRipple(page){
+ check(await page.locator(".shock-wave,.water-ring,.water-drop,.ripple-source").count()===0,"The removed expanding source ripple never returns");
+ check(await page.evaluate(()=>document.getAnimations().every(item=>!["drop-ring","ripple-scene","water-drop","loading-ring"].includes(item.animationName))),"No expanding ring or source-drop animation runs");
+}
+async function checkProgressPulse(page,selector){
+ await page.waitForFunction(selector=>[...document.querySelectorAll(selector)].some(item=>Number(getComputedStyle(item).opacity)>0),selector);
+ const pulse=await page.locator(selector).first().evaluate(item=>{
+  const animation=item.getAnimations().find(a=>a.animationName==="water-current"),timing=animation.effect.getTiming(),style=getComputedStyle(item);
+  return {duration:timing.duration,easing:style.animationTimingFunction,iterations:timing.iterations,opacity:Number(style.opacity),transform:style.transform,clip:item.parentElement.getAttribute("clip-path")};
+ });
+ check(pulse.duration===1200&&pulse.easing==="ease-in-out"&&pulse.iterations===1,"Progress feedback restores the original finite 1200ms easing and duration");
+ check(pulse.opacity>0&&pulse.transform!=="none"&&pulse.clip.startsWith("url(#"),"The original fade is actually painted and clipped to the filled bar");
+ await checkNoExpandingRipple(page);
 }
 async function checkFooter(page,width){
  const layout=await page.locator("footer").evaluate(footer=>{
@@ -67,32 +77,43 @@ try{
   check(await page.locator(".shock-wave,.is-flowing").count()===0,"Opening exploration does not trigger a ripple");
   check(await page.locator("header nav").count()===0 && await page.locator("#job-loss").evaluate(item=>item===document.activeElement),"Exploration keeps keyboard focus without redundant header navigation");
   await page.locator("#job-loss").check();
+  const emphasis=await page.evaluate(()=>document.getAnimations().filter(item=>item.animationName==="impact-spread").map(item=>({...item.effect.getTiming(),easing:getComputedStyle(item.effect.target).animationTimingFunction})));
+  check(emphasis.length>0&&emphasis.every(item=>item.duration===480&&item.easing==="ease-out"),"Result emphasis restores the original 480ms timing");
   check(await page.locator("#after-runway").textContent()===runwayHeading(simulate(profiles.get("39859"),{job_loss:true})),"Scenario updates immediately using the preserved financial engine");
   const delta=await page.locator(".is-changed .comparison-change dd").first().evaluate(item=>({color:getComputedStyle(item).color,background:getComputedStyle(item).backgroundColor}));
   check(delta.color==="rgb(61, 56, 245)"&&delta.background==="rgb(241, 241, 246)","The negative income change uses blue text on the light gray badge");
   const signs=await checkSignedChanges(page);
   check(signs.some(item=>item.text.startsWith("+"))&&signs.some(item=>item.text.startsWith("−"))&&signs.some(item=>item.text==="$0.00"),"Positive, negative and unchanged amounts are covered together");
-  await checkStaticScenario(page);
-  check(await page.locator(".comparison-after .bar-after").first().evaluate(item=>getComputedStyle(item).fill==="rgb(174, 217, 4)"),"Static After bars retain the existing accent");
-  await page.screenshot({path:path.join(output,`${width}-after-comparison.png`)});
+  await checkNoExpandingRipple(page);
+  check(await page.locator(".comparison-after .bar-after").first().evaluate(item=>getComputedStyle(item).fill==="rgb(174, 217, 4)"),"Animated After bars retain the existing accent");
+  await checkProgressPulse(page,".comparison-after .is-flowing .water-sheen");
+  check(await page.locator(".comparison-before .water-sheen").count()===0,"Historical Before bars never acquire scenario surface motion");
+  check(await page.locator(".comparison-after .pair-bar").first().evaluate(svg=>{const bar=svg.querySelector(".bar-after"),clip=svg.querySelector("clipPath rect");return bar.getAttribute("x")===clip.getAttribute("x")&&bar.getAttribute("width")===clip.getAttribute("width");}),"Restored surface clipping matches the exact filled amount");
+  await page.screenshot({path:path.join(output,`${width}-after-comparison.png`),animations:"allow"});
+  await page.waitForFunction(()=>!document.querySelector(".is-flowing,.ripple-impact"));
+  check(await page.locator(".water-sheen").evaluateAll(items=>items.every(item=>Number(getComputedStyle(item).opacity)===0)),"Progress pulses finish and return to the original idle appearance");
   await page.locator("#ei-rate").evaluate(input=>{input.value="80";input.dispatchEvent(new Event("input",{bubbles:true}));});
   check(await page.locator("#ei-rate-number").inputValue()==="80"&&await page.locator("#after-runway").textContent()===runwayHeading(simulate(profiles.get("39859"),{job_loss:true,ei_rate:.8})),"The slider still synchronizes the number input and immediate result");
   await page.locator("#full-plan-details>summary").click();
   const plan=savingsPlan(profiles.get("39859"),simulate(profiles.get("39859"),{job_loss:true,ei_rate:.8}));
   check(await page.locator("#goal-progress").evaluate(item=>item.value)===Math.min(plan.available,plan.goal),"The native static savings progress preserves the calculated amount");
-  await checkStaticScenario(page);
+  await checkNoExpandingRipple(page);
   await page.locator("#emergency-repair").check();
   const repair=profiles.get("39859").buffer-profiles.get("39859").spending;
   await page.locator("#repair-cost").fill(String(repair));
   const revised=savingsPlan(profiles.get("39859"),simulate(profiles.get("39859"),{job_loss:true,ei_rate:.8,emergency_repair:true,repair_cost:repair}));
   check(await page.locator("#goal-progress").evaluate(item=>item.value)===Math.min(revised.available,revised.goal),"Repair changes update static goal progress without changing its calculation");
-  await page.locator(".goal-meter").screenshot({path:path.join(output,`${width}-savings-static.png`)});
-  await checkStaticScenario(page);
+  await checkProgressPulse(page,"#goal-water .is-flowing .water-sheen");
+  await page.locator(".goal-meter").screenshot({path:path.join(output,`${width}-savings-pulse.png`),animations:"allow"});
+  await checkNoExpandingRipple(page);
   await page.locator("#emergency-repair").uncheck();
   await page.emulateMedia({reducedMotion:"reduce"});
+  await page.waitForFunction(()=>!document.querySelector(".is-flowing,.ripple-impact"));
+  check(await page.locator(".water-sheen").evaluateAll(items=>items.every(item=>getComputedStyle(item).animationName==="none"&&Number(getComputedStyle(item).opacity)===0)),"Reduced motion stops and hides every restored progress animation");
+  check(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollBehavior==="auto"),"Reduced motion retains nonanimated scrolling");
   await page.locator("#ei-rate-number").fill("65");
   check(await page.locator("#ei-rate").inputValue()==="65"&&await page.locator("#after-runway").textContent()===runwayHeading(simulate(profiles.get("39859"),{job_loss:true,ei_rate:.65})),"Number input, slider and calculations remain synchronized under reduced motion");
-  await checkStaticScenario(page);
+  await checkNoExpandingRipple(page);
   check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"Static scenario controls retain responsive page width");
   await page.locator("#emergency-repair").check();await page.locator("#repair-cost").fill(String(profiles.get("39859").buffer+1));
   check(await page.locator('.comparison-metric[data-metric="buffer_left"] .comparison-after svg').evaluate(svg=>{
@@ -105,12 +126,22 @@ try{
   check(await page.locator("#comparison").isHidden(),"Reset still clears the scenario result");
   await page.emulateMedia({reducedMotion:"no-preference"});await page.locator("#job-loss").check();
   await page.locator("#higher-bills").check();await page.locator("#emergency-repair").check();
-  await checkSignedChanges(page);await checkStaticScenario(page);
+  await checkSignedChanges(page);await checkNoExpandingRipple(page);
   await page.locator("#before-after-details>summary").click();await checkSignedChanges(page);
   await page.locator("#reset-scenario").click();await page.locator("#emergency-repair").check();await page.locator("#repair-cost").fill("0.001");
   const tiny=await checkSignedChanges(page);
   check(tiny.some(item=>item.text==="−< $0.01"&&item.color==="rgb(61, 56, 245)"),"Sub-cent decreases retain their blue minus sign instead of becoming a neutral zero");
-  await page.waitForTimeout(300);await checkStaticScenario(page);
+  await page.waitForTimeout(300);await checkNoExpandingRipple(page);
+  await page.waitForFunction(()=>!document.querySelector(".is-flowing,.ripple-impact"));
+  await page.locator("#lookup-button").hover();
+  check(await page.locator("#lookup-button").evaluate(item=>getComputedStyle(item).filter==="brightness(0.94)"),"The original button hover effect remains intact");
+  await page.locator(".metric-info summary").first().hover();
+  check(await page.locator(".metric-info summary").first().evaluate(item=>getComputedStyle(item).backgroundColor==="rgb(238, 237, 255)"),"The original information hover surface remains intact");
+  await page.locator(".chart-point").first().hover();
+  check(await page.locator(".chart-point .bar-in").first().evaluate(item=>getComputedStyle(item).stroke==="rgb(36, 38, 51)"),"The original chart hover boundary remains intact");
+  check(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollBehavior==="smooth"),"The original normal-motion smooth scrolling remains intact");
+  await page.locator("#reset-scenario").click();
+  check(await page.locator(".is-flowing,.ripple-impact").count()===0,"Reset removes active and pending progress and result feedback");
   await checkFooter(page,width);
   await ctx.close();
  }

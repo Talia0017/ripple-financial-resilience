@@ -76,8 +76,8 @@ try {
   check(await page.locator(".ripple-mark path.brand-drop").count()===1 && await page.locator(".ripple-mark path.brand-wave").count()===3 && await page.locator(".ripple-mark circle").count()===0, "Logo uses a drop and three open perspective waves, not a closed bullseye");
   await page.locator(".shock-section").evaluate(item => item.scrollIntoView({block:"start",behavior:"instant"}));
   await page.locator("#job-loss").check();
-  check(await page.locator(".shock-wave,.water-ring,.water-drop,.ripple-impact,.water-sheen").count()===0,"Shock activation creates no ripple decorations");
-  check(await page.evaluate(()=>document.getAnimations().length===0),"Shock results update without decorative animations");
+  check(await page.locator(".shock-wave,.water-ring,.water-drop,.ripple-source").count()===0,"Shock activation creates no ripple decorations");
+  check(await page.evaluate(()=>document.getAnimations().some(item=>item.animationName==="water-current")&&document.getAnimations().every(item=>["impact-spread","water-current"].includes(item.animationName))),"Only the original result and progress feedback runs");
   const profile=profiles.get("39859");
   check(await page.locator("#after-runway").textContent()===runwayHeading(simulate(profile,{job_loss:true})),"Static feedback preserves the official result");
   const burst=await page.evaluate(() => {
@@ -85,9 +85,9 @@ try {
     for (const value of [60,65,70,75,80]) {input.value=String(value);input.dispatchEvent(new Event("input",{bubbles:true}));}
     return {animations:document.getAnimations().length,income:Number(document.querySelector('[data-metric="income"] .comparison-after dd').dataset.value)};
   });
-  check(burst.animations===0&&burst.income===simulate(profile,{job_loss:true,ei_rate:.8}).income,"Rapid inputs update numbers synchronously without animation");
+  check(burst.income===simulate(profile,{job_loss:true,ei_rate:.8}).income,"Rapid inputs update numbers synchronously while visual feedback is deferred");
   await page.waitForTimeout(300);
-  check(await page.locator(".shock-wave,.ripple-impact,.is-flowing").count()===0&&await page.evaluate(()=>document.getAnimations().length===0),"No delayed animation appears after input settles");
+  check(await page.locator(".shock-wave,.ripple-source").count()===0&&await page.locator(".is-flowing").count()>0,"Settled inputs restore progress feedback without source rings");
   await page.screenshot({path:path.join(output,"static-scenario.png")});
   await page.locator("#reset-scenario").click();
   check(await page.locator("#comparison").isHidden(),"Reset still clears the static scenario result");

@@ -258,10 +258,10 @@ try {
     const started = performance.now();
     document.getElementById("job-loss").click();
     const animations = document.getAnimations();
-    return {updateMs: performance.now() - started, count: animations.length, runway: document.getElementById("after-runway").textContent};
+    return {updateMs: performance.now() - started, names: animations.map(item=>item.animationName), runway: document.getElementById("after-runway").textContent};
   });
   scenarioUpdateMs = pulse.updateMs;
-  check(pulse.count === 0, "A selected shock updates without ripple or replacement animations");
+  check(pulse.names.includes("impact-spread")&&pulse.names.includes("water-current")&&!pulse.names.some(name=>["drop-ring","ripple-scene","water-drop"].includes(name)), "A selected shock restores result and progress feedback without an expanding ripple");
   check(pulse.updateMs < 200 && pulse.runway === runwayHeading(simulate(profile, {job_loss: true})), "Results update immediately without waiting for visual effects");
   check(await motion.page.evaluate(() => {
     document.body.classList.add("is-loading");

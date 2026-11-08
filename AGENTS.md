@@ -74,10 +74,13 @@ credentials or put tokens into tracked files or command URLs.
   and error messages only when relevant. Preserve trust text in the accessible
   About area and footer, metric definitions in native disclosures, and retained
   section anchors. Record metadata and plan assumptions belong in details.
-- Scenario interactions are static: no decorative ripples, drop/ring effects,
-  animated result emphasis or water-surface overlays. Keep controls and financial
-  results synchronous, native progress semantics intact, and the static brand
-  mark unchanged. Do not add a replacement animation.
+- Preserve the original non-expanding interaction feedback from commit 597df2b:
+  480ms inset result emphasis and one 1200ms clipped progress-surface fade with
+  ease-in-out timing. Continuous input feedback settles after 180ms; calculations
+  remain immediate. Honor reduced motion and clean up on reset, invalid input,
+  account changes and panel closure. Keep hover and smooth-scroll behavior.
+  The expanding source ripple, drop and rings must remain absent. There was no
+  perpetual breathing animation in that version; do not introduce a new loop.
 - Footer: align credit information as a left-hand stack and links as a balanced
   right-hand group inside the main content gutters. Stack groups on narrow screens.
 - Keep one connected account workspace: historical metrics and cash flow in the

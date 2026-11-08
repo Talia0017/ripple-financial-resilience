@@ -336,13 +336,20 @@ helpers and tests remain intact; the customer app no longer runs population
 aggregation or renders research charts. Missing observations, cohort selection
 and unavailable scenarios remain explicit in the research report.
 
-Scenario controls, comparison bars, runway and next-step content update directly
-without decorative animations. Drop/ring effects, animated emphasis, input-settle
-motion timers and water-surface overlays have been removed. Native savings
-progress, signed differences, chart geometry and financial calculations remain
-intact. Changing a checkbox, slider or number input does not add an animation;
-account switching, reset and disclosures retain their normal behavior. The
-static Ripple brand mark is unchanged.
+Scenario changes preserve the original non-expanding feedback: a **480ms** inset
+emphasis on affected result rows, runway and next step, plus a **1200ms**
+`ease-in-out` surface highlight clipped to filled After bars and savings progress.
+The original opacity envelope fades from zero to 0.22 and back to zero; it runs
+once per relevant change. Slider and numeric feedback settles after **180ms**,
+while calculations update immediately. These definitions and geometry match
+commit `597df2b`; no new looping breathing animation is added.
+
+The expanding source ripple, falling drop and rings remain removed. Reduced
+motion stops feedback, hides the surface and preserves native progress values.
+Reset, invalid input, account changes and panel closure clear pending effects.
+The existing button/information/chart hover effects, smooth scrolling and static
+Ripple brand mark remain unchanged. Colors, typography, layout and financial
+calculations are independent of the restored overlays.
 
 Monthly charts have an explicit **260px** desktop / **240px** mobile height,
 unchanged between six- and twelve-month views. The renderer reveals history
@@ -456,7 +463,7 @@ buffer edge cases, and ten additional random selections at each of
 1366×768, 1440×900, 375×900 and 320×900. It measures SVG/text scale and fixed
 height through repeated six-/twelve-month switches and browser resizes, compares
 annotations and highlights with actual account rows, and captures first/later
-selections. It also captures visible impact/spread/finished animation frames,
+selections. It also captures the restored result/progress feedback without source rings,
 checks settled-input feedback, reset and reduced motion. Screenshots and
 measurement reports go to the temporary directory, not the public site.
 
@@ -467,9 +474,9 @@ geometry, visible desktop chart/mobile baseline context, keyboard disclosures,
 account switching, reset, invalid inputs, negative buffers and reduced motion.
 
 The brand-motion suite checks green incoming/blue outgoing series and legends,
-AA text contrast, lime bar boundaries, contextual focus and animation-free
-scenario interactions. It verifies immediate slider/number synchronization,
-static native savings progress, signed badge colors, zero and sub-cent changes
+AA text contrast, lime bar boundaries, contextual focus and selectively restored
+scenario feedback. It verifies immediate slider/number synchronization,
+native savings progress with its original surface fade, signed badge colors, zero and sub-cent changes
 across primary and detailed comparisons, and exact lime Money In metric text
 without dark backing. Contrast checks cover body text, controls and non-positive
 badges; the requested lime text on light surfaces is excluded from AA claims.

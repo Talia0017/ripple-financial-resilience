@@ -94,7 +94,7 @@ try {
   for(const person of [people.find(p=>p.buffer<0),people.find(p=>p.household_bills===0),people.find(p=>p.spending>p.income),people.find(p=>p.buffer>p.spending*3&&p.income>p.spending)].filter(Boolean)) {await choose(page,person.account_id);await verify(page,person);}
   await choose(page,"39859");
   const feedback=await page.evaluate(()=>{document.getElementById("job-loss").click();return {animations:document.getAnimations().length,next:document.getElementById("next-step-title").textContent};});
-  check(feedback.animations===0&&feedback.next.length>0,"Real shock input updates the next step directly without animated emphasis");
+  check(feedback.animations>0&&feedback.next.length>0,"Real shock input restores the original feedback while updating the next step directly");
   await page.emulateMedia({reducedMotion:"reduce"});
   await page.waitForFunction(()=>matchMedia("(prefers-reduced-motion: reduce)").matches&&!document.querySelector(".shock-wave,.ripple-impact"));
   check(await page.locator(".shock-wave,.ripple-impact").count()===0,"Reduced motion keeps the input-to-plan interface free of effects");

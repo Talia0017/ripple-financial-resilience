@@ -1,6 +1,6 @@
 import {decodeProfiles, simulate} from "./engine.mjs";
 import {money, monthName, decodeHistory, monthlyInsights, monthlyDiscovery, bufferEquivalent, runwayHeading, runwayExplanation, scenarioInsight, comparisonMetrics, savingsPlan, backupPlan} from "./dashboard.mjs";
-import {renderMonthlyChart, renderComparisonChart} from "./charts.mjs";
+import {renderMonthlyChart, renderComparisonChart, renderProgressFlow} from "./charts.mjs";
 
 const $ = id => document.getElementById(id);
 const element = (tag, text, className) => {
@@ -12,11 +12,86 @@ const element = (tag, text, className) => {
 let profiles = new Map(), selected = null, sourceHashes = null;
 let loadGeneration = 0, historyGeneration = 0, historyWindow = 6;
 let historyPromise = null, selectedHistory = null;
+let lastScenario = null;
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const narrowWorkspace = matchMedia("(max-width: 1100px)");
+const feedbackTargets = new Map();
+const flowTargets = new Map();
+let feedbackTimer = null, pendingFeedback = null;
+
+function clearWaterFlow() {for (const finish of flowTargets.values()) finish();}
+function flowWater(keys = null, scope = document) {
+  clearWaterFlow();
+  if (reducedMotion.matches) return;
+  for (const host of scope.querySelectorAll(".comparison-after .pair-bar, #goal-water svg")) {
+    const surface = host.querySelector(".water-sheen");
+    if (!surface || host.closest("details:not([open]), [hidden]")) continue;
+    const metric = host.closest("[data-metric]")?.dataset.metric;
+    if (keys && (metric ? !keys.includes(metric) : !keys.includes("buffer_left"))) continue;
+    let cleanupTimer;
+    const finish = event => {
+      if (event && (event.target !== surface || event.animationName !== "water-current")) return;
+      surface.removeEventListener("animationend", finish);surface.removeEventListener("animationcancel", finish);
+      clearTimeout(cleanupTimer);
+      host.classList.remove("is-flowing");flowTargets.delete(host);
+    };
+    host.classList.add("is-flowing");flowTargets.set(host, finish);
+    surface.addEventListener("animationend", finish);surface.addEventListener("animationcancel", finish);
+    cleanupTimer = setTimeout(finish, 1300);
+  }
+}
+function clearScenarioMotion() {
+  if (feedbackTimer !== null) clearTimeout(feedbackTimer);
+  feedbackTimer = null;pendingFeedback = null;
+  for (const finish of feedbackTargets.values()) finish();
+  clearWaterFlow();
+}
+function playScenarioMotion(source, keys, runwayChanged) {
+  if (reducedMotion.matches || !source?.isConnected || source.closest("details:not([open])") || !selected) {clearScenarioMotion();return;}
+  clearScenarioMotion();
+  const targets = [...keys.flatMap(key =>
+    [...document.querySelectorAll(`#comparison-chart [data-metric="${key}"], #unchanged-comparison [data-metric="${key}"]`)]
+      .filter(item => !item.closest("details:not([open]), [hidden]"))
+      .map(item => [item, "ripple-impact", item, "impact-spread"]))];
+  if (runwayChanged) {const item = document.querySelector(".outcome");targets.push([item, "ripple-impact", item, "impact-spread"]);}
+  if (keys.length) {const item = $("next-step-message");targets.push([item, "ripple-impact", item, "impact-spread"]);}
+  for (const [item, className, listener, animationName] of targets) {
+    if (!item) continue;
+    let cleanupTimer;
+    const finish = event => {
+      if (event && (event.target !== listener || event.animationName !== animationName)) return;
+      listener.removeEventListener("animationend", finish);listener.removeEventListener("animationcancel", finish);
+      clearTimeout(cleanupTimer);
+      item.classList.remove(className);feedbackTargets.delete(item);
+    };
+    item.classList.add(className);feedbackTargets.set(item, finish);
+    listener.addEventListener("animationend", finish);listener.addEventListener("animationcancel", finish);
+    // Animation events are not guaranteed after stylesheet changes or interrupted rendering.
+    cleanupTimer = setTimeout(finish, 750);
+  }
+  if (keys.length || runwayChanged) flowWater(keys);
+}
+function scenarioMotion(event, keys, runwayChanged) {
+  if (reducedMotion.matches) {clearScenarioMotion();return;}
+  const source = event?.target?.closest(".shock-option, .shock-assumption");
+  if (!source) return;
+  if (event.target.type === "checkbox") {playScenarioMotion(source, keys, runwayChanged);return;}
+  const previous = pendingFeedback?.source === source ? pendingFeedback : null;
+  pendingFeedback = {source, keys: [...new Set([...(previous?.keys ?? []), ...keys])], runway: runwayChanged || Boolean(previous?.runway), account: selected.account_id};
+  if (feedbackTimer !== null) clearTimeout(feedbackTimer);
+  // Calculation is immediate; the original visual feedback waits for input to settle.
+  feedbackTimer = setTimeout(() => {
+    const pulse = pendingFeedback;
+    if (pulse && pulse.account === selected?.account_id) playScenarioMotion(pulse.source, pulse.keys, pulse.runway);
+    else clearScenarioMotion();
+  }, 180);
+}
+reducedMotion.addEventListener("change", () => {if (reducedMotion.matches) clearScenarioMotion();});
 
 function message(item, text) {item.textContent = text; item.hidden = !text;}
 const amountForCopy = value => value > 0 && value < .005 ? "less than $0.01" : money(value);
 function clearScenarioOutput() {
+  clearScenarioMotion();lastScenario = null;
   $("comparison").hidden = true;
   $("scenario-breakdown").hidden = true;
   $("before-after-details").hidden = true;
@@ -47,6 +122,7 @@ function setControls() {
   $("ei-output").textContent = `${$("ei-rate-number").value || "—"}%`;
 }
 function resetScenario() {
+  clearScenarioMotion();lastScenario = null;
   for (const id of ["job-loss", "higher-bills", "emergency-repair"]) $(id).checked = false;
   $("ei-rate").value = "55";
   $("ei-rate-number").value = "55";
@@ -96,6 +172,7 @@ function renderPlans(after, active) {
   host.replaceChildren();
   $("goal-progress").hidden = !plan;
   $("goal-progress").parentElement.hidden = !plan;
+  if (plan) renderProgressFlow($("goal-water"), plan.progress);else $("goal-water").replaceChildren();
   $("goal-summary").textContent = !plan ? "Not available" : plan.remaining === 0 ? "Target met" : money(plan.remaining);
   $("goal-caption").textContent = !plan ? "Valid spending and scenario data needed." : plan.remaining === 0 ? `${money(plan.goal)} three-month spending target.` : `remaining toward a ${money(plan.goal)} three-month spending target.`;
   if (plan) {$("goal-progress").max = plan.goal;$("goal-progress").value = Math.min(plan.available, plan.goal);}
@@ -127,7 +204,7 @@ function scenarioAnnotation(before, after, insight) {
   const causes = changes.map((row, index) => `${row.key === "income" ? "Money in" : index ? "spending" : "Spending"} ${row.delta < 0 ? "falls" : "rises"} by ${amountForCopy(Math.abs(row.delta))}`);
   return `${causes.join(" and ")}${after.monthly_shortfall > 0 ? `, leaving a monthly shortfall of ${amountForCopy(after.monthly_shortfall)}` : ", with no monthly shortfall"}.${limit}`;
 }
-function updateComparison() {
+function updateComparison(event) {
   if (!selected) return;
   setControls();
   try {
@@ -147,6 +224,7 @@ function updateComparison() {
       $("scenario-invitation").hidden = false;
       message($("scenario-error"), "");
       renderPlans(before, false);
+      lastScenario = before;
       return;
     }
     $("scenario-invitation").hidden = true;
@@ -175,6 +253,10 @@ function updateComparison() {
     $("scenario-breakdown").hidden = !$("comparison-chart").childElementCount;
     $("before-after-details").hidden = false;
     renderPlans(after, count > 0);
+    const previous = lastScenario ?? before;
+    const keys = comparisonMetrics(previous, after).filter(row => row.changed).map(row => row.key);
+    scenarioMotion(event, keys, previous.runway !== after.runway || previous.no_shortfall !== after.no_shortfall);
+    lastScenario = after;
   } catch (error) {
     clearScenarioOutput();
     message($("scenario-error"), error.message);
@@ -345,18 +427,22 @@ function revealAnchor() {
 }
 window.addEventListener("hashchange", revealAnchor);
 $("footer-data").addEventListener("click", event => {event.preventDefault();revealData();});
+for (const id of ["before-after-details", "full-plan-details"]) $(id).addEventListener("toggle", () => {
+  for (const [host, finish] of flowTargets) if (host.closest("details:not([open])")) finish();
+});
 $("explore-change").addEventListener("click", () => revealWorkspace());
 function syncSecondaryFocus() {for (const region of document.querySelectorAll(".secondary-scroll")) {if (narrowWorkspace.matches) region.removeAttribute("tabindex");else region.tabIndex = 0;}}
 narrowWorkspace.addEventListener("change", () => {if (selected) $("scenario-workspace").open = !narrowWorkspace.matches;syncSecondaryFocus();});
 syncSecondaryFocus();
+$("scenario-workspace").addEventListener("toggle", () => {if (!$("scenario-workspace").open) clearScenarioMotion();});
 $("retry-load").addEventListener("click", loadProfiles);
 $("retry-history").addEventListener("click", () => {historyPromise = null;loadHistory();});
 for (const id of ["job-loss", "higher-bills", "emergency-repair", "bill-rate", "repair-cost"]) $(id).addEventListener("input", updateComparison);
-$("ei-rate").addEventListener("input", () => {$("ei-rate-number").value = $("ei-rate").value;updateComparison();});
-$("ei-rate-number").addEventListener("input", () => {
+$("ei-rate").addEventListener("input", event => {$("ei-rate-number").value = $("ei-rate").value;updateComparison(event);});
+$("ei-rate-number").addEventListener("input", event => {
   const input = $("ei-rate-number");
   if (input.value.trim() && input.checkValidity() && Number.isFinite(Number(input.value))) $("ei-rate").value = input.value;
-  updateComparison();
+  updateComparison(event);
 });
 for (const [id, count] of [["history-six", 6], ["history-twelve", 12]]) $(id).addEventListener("click", () => {historyWindow = count;renderHistory();});
 loadProfiles();
