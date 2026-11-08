@@ -70,12 +70,10 @@ credentials or put tokens into tracked files or command URLs.
   and error messages only when relevant. Preserve trust text in the accessible
   About area and footer, metric definitions in native disclosures, and retained
   section anchors. Record metadata and plan assumptions belong in details.
-- Shock feedback lasts 700ms; continuous inputs get one smaller ripple after
-  180ms idle. Clip feedback inside its source control and enforce timed cleanup
-  even if animation events fail. Filled After bars and savings progress can show
-  a finite 1200ms water surface only on relevant scenario changes. Opening an
-  account or disclosure must not start motion. Never loop it, animate a
-  financial amount, delay calculations or bypass reduced-motion preferences.
+- Scenario interactions are static: no decorative ripples, drop/ring effects,
+  animated result emphasis or water-surface overlays. Keep controls and financial
+  results synchronous, native progress semantics intact, and the static brand
+  mark unchanged. Do not add a replacement animation.
 - Footer: align credit information as a left-hand stack and links as a balanced
   right-hand group inside the main content gutters. Stack groups on narrow screens.
 - Keep one connected account workspace: historical metrics and cash flow in the

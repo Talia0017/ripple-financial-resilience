@@ -76,34 +76,23 @@ try {
   check(await page.locator(".ripple-mark path.brand-drop").count()===1 && await page.locator(".ripple-mark path.brand-wave").count()===3 && await page.locator(".ripple-mark circle").count()===0, "Logo uses a drop and three open perspective waves, not a closed bullseye");
   await page.locator(".shock-section").evaluate(item => item.scrollIntoView({block:"start",behavior:"instant"}));
   await page.locator("#job-loss").check();
-  check(await page.locator(".shock-wave .water-ring").count()===2, "Actual shock activation attaches two real wave rings");
-  await page.waitForTimeout(40);
-  check(await page.locator(".water-drop").evaluate(item => Number(getComputedStyle(item).opacity)>0), "The actual falling drop is painted before wave expansion");
-  await page.screenshot({path:path.join(output,"motion-drop.png"),animations:"allow"});
-  await page.waitForFunction(() => {
-    const svg=document.querySelector(".shock-wave");
-    return svg && [...svg.querySelectorAll("ellipse")].some(item=>Number(getComputedStyle(item).opacity)>0&&item.getBoundingClientRect().width>8);
-  });
-  const visible = await page.locator(".shock-wave").evaluate(svg => ({opacity:Number(getComputedStyle(svg).opacity),rings:[...svg.querySelectorAll("ellipse")].map(item=>({opacity:Number(getComputedStyle(item).opacity),width:item.getBoundingClientRect().width}))}));
-  check(visible.opacity>0 && visible.rings.some(item=>item.opacity>0 && item.width>8), "Normal-use motion includes painted, compact expanding rings inside the control");
-  await page.screenshot({path:path.join(output,"motion-impact.png"),animations:"allow"});
-  await page.waitForTimeout(120);await page.screenshot({path:path.join(output,"motion-spread.png"),animations:"allow"});
-  await page.waitForFunction(() => !document.querySelector(".shock-wave"));
-  await page.screenshot({path:path.join(output,"motion-finished.png"),animations:"allow"});
+  check(await page.locator(".shock-wave,.water-ring,.water-drop,.ripple-impact,.water-sheen").count()===0,"Shock activation creates no ripple decorations");
+  check(await page.evaluate(()=>document.getAnimations().length===0),"Shock results update without decorative animations");
   const profile=profiles.get("39859");
-  check(await page.locator("#after-runway").textContent()===runwayHeading(simulate(profile,{job_loss:true})), "Visible motion preserves the official result");
+  check(await page.locator("#after-runway").textContent()===runwayHeading(simulate(profile,{job_loss:true})),"Static feedback preserves the official result");
   const burst=await page.evaluate(() => {
     const input=document.getElementById("ei-rate-number");
     for (const value of [60,65,70,75,80]) {input.value=String(value);input.dispatchEvent(new Event("input",{bubbles:true}));}
-    return {waves:document.querySelectorAll(".shock-wave").length, income:Number(document.querySelector('[data-metric="income"] .comparison-after dd').dataset.value)};
+    return {animations:document.getAnimations().length,income:Number(document.querySelector('[data-metric="income"] .comparison-after dd').dataset.value)};
   });
-  check(burst.waves===0 && burst.income===simulate(profile,{job_loss:true,ei_rate:.8}).income, "Rapid input updates numbers immediately without replaying a large wave");
-  await page.waitForFunction(() => document.querySelector(".shock-wave.is-settled"));
-  check(await page.locator(".shock-wave").count()===1, "A single restrained ripple appears after input settles");
+  check(burst.animations===0&&burst.income===simulate(profile,{job_loss:true,ei_rate:.8}).income,"Rapid inputs update numbers synchronously without animation");
+  await page.waitForTimeout(300);
+  check(await page.locator(".shock-wave,.ripple-impact,.is-flowing").count()===0&&await page.evaluate(()=>document.getAnimations().length===0),"No delayed animation appears after input settles");
+  await page.screenshot({path:path.join(output,"static-scenario.png")});
   await page.locator("#reset-scenario").click();
-  check(await page.locator(".shock-wave").count()===0 && await page.locator("#comparison").isHidden(), "Reset clears both pending and visible feedback");
+  check(await page.locator("#comparison").isHidden(),"Reset still clears the static scenario result");
   await page.emulateMedia({reducedMotion:"reduce"});await page.locator("#job-loss").check();
-  check(await page.locator(".shock-wave").count()===0 && await page.locator("#after-runway").textContent()===runwayHeading(simulate(profile,{job_loss:true})), "Reduced-motion users get correct nonanimated state changes");
+  check(await page.evaluate(()=>document.getAnimations().length===0)&&await page.locator("#after-runway").textContent()===runwayHeading(simulate(profile,{job_loss:true})),"Motion preferences retain correct nonanimated state changes");
   await context.close();
   assert.deepEqual(errors,[]);
   await writeFile(path.join(output,"measurements.json"),JSON.stringify(measurements,null,2));

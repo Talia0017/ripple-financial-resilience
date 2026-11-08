@@ -93,11 +93,11 @@ try {
   await page.goto(base);await page.waitForFunction(()=>!document.getElementById("lookup-button").disabled);
   for(const person of [people.find(p=>p.buffer<0),people.find(p=>p.household_bills===0),people.find(p=>p.spending>p.income),people.find(p=>p.buffer>p.spending*3&&p.income>p.spending)].filter(Boolean)) {await choose(page,person.account_id);await verify(page,person);}
   await choose(page,"39859");
-  const feedback=await page.evaluate(()=>{document.getElementById("job-loss").click();return {next:document.getElementById("next-step-message").classList.contains("ripple-impact"),changed:document.querySelectorAll("#comparison-chart .ripple-impact").length};});
-  check(feedback.next&&feedback.changed>0,"Real shock input connects affected values, runway and next-step emphasis");
+  const feedback=await page.evaluate(()=>{document.getElementById("job-loss").click();return {animations:document.getAnimations().length,next:document.getElementById("next-step-title").textContent};});
+  check(feedback.animations===0&&feedback.next.length>0,"Real shock input updates the next step directly without animated emphasis");
   await page.emulateMedia({reducedMotion:"reduce"});
   await page.waitForFunction(()=>matchMedia("(prefers-reduced-motion: reduce)").matches&&!document.querySelector(".shock-wave,.ripple-impact"));
-  check(await page.locator(".shock-wave,.ripple-impact").count()===0,"Reduced motion clears the complete input-to-plan effect");
+  check(await page.locator(".shock-wave,.ripple-impact").count()===0,"Reduced motion keeps the input-to-plan interface free of effects");
   await verify(page,profiles.get("39859"),{job_loss:true});
   await ctx.close();
   // Explicit browser-only planning fixtures; the public official assets are never modified.

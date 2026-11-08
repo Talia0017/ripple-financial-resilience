@@ -257,12 +257,12 @@ try {
   const pulse = await motion.page.evaluate(() => {
     const started = performance.now();
     document.getElementById("job-loss").click();
-    const animations = document.getAnimations().filter(item => ["drop-ring", "impact-spread"].includes(item.animationName));
-    return {updateMs: performance.now() - started, names: animations.map(item => item.animationName), duration: Math.max(...animations.map(item => {const timing = item.effect.getTiming();return timing.duration + timing.delay;})), runway: document.getElementById("after-runway").textContent};
+    const animations = document.getAnimations();
+    return {updateMs: performance.now() - started, count: animations.length, runway: document.getElementById("after-runway").textContent};
   });
   scenarioUpdateMs = pulse.updateMs;
-  check(pulse.names.includes("drop-ring") && pulse.names.includes("impact-spread"), "A selected shock produces a subtle control-to-impact ripple");
-  check(pulse.duration <= 700 && pulse.updateMs < 200 && pulse.runway === runwayHeading(simulate(profile, {job_loss: true})), "Results update immediately and discrete ripple feedback stays within 700 ms");
+  check(pulse.count === 0, "A selected shock updates without ripple or replacement animations");
+  check(pulse.updateMs < 200 && pulse.runway === runwayHeading(simulate(profile, {job_loss: true})), "Results update immediately without waiting for visual effects");
   check(await motion.page.evaluate(() => {
     document.body.classList.add("is-loading");
     const active = document.getAnimations().some(item => item.animationName === "loading-ring");
@@ -275,9 +275,9 @@ try {
   await motion.page.waitForFunction(() => matchMedia("(prefers-reduced-motion: reduce)").matches && !document.querySelector(".shock-wave, .ripple-impact"));
   await motion.page.locator("#ei-rate-number").fill("65");
   await motion.page.waitForFunction(() => document.getAnimations().every(item => !["drop-ring", "impact-spread", "loading-ring"].includes(item.animationName)));
-  check(await motion.page.evaluate(() => document.getAnimations().filter(item => ["drop-ring", "impact-spread", "loading-ring"].includes(item.animationName)).length === 0), "Reduced motion disables all ripple and loading animations");
+  check(await motion.page.evaluate(() => document.getAnimations().filter(item => ["drop-ring", "impact-spread", "loading-ring"].includes(item.animationName)).length === 0), "Reduced motion retains the animation-free scenario interface");
   check(await motion.page.locator("#after-runway").textContent() === runwayHeading(simulate(profile, {job_loss: true, ei_rate: .65})), "Reduced motion preserves immediate scenario calculations");
-  check(await motion.page.locator(".ripple-source, .ripple-impact").count() === 0, "Changing motion preference cleans up active feedback");
+  check(await motion.page.locator(".ripple-source, .ripple-impact").count() === 0, "Changing motion preference never creates decorative feedback");
   check(await motion.page.evaluate(() => {
     document.body.classList.add("is-loading");
     const count = document.getAnimations().filter(item => item.animationName === "loading-ring").length;

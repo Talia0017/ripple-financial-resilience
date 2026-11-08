@@ -262,9 +262,8 @@ numbers remain available under **View scenario details**. Zero recorded bills
 are described as a modeling limitation, not evidence of no living expenses.
 Reset, account switching and invalid input clear obsolete results. Comparison
 values are visible directly and keyboard accessible, with no hidden tooltip
-state. Updating an assumption does not auto-scroll. Optional, short ripple
-feedback links a changed control with affected metrics, runway and the next
-step. Calculations and plan updates are synchronous; motion is optional.
+state. Updating an assumption does not auto-scroll or animate the controls and
+results. Calculations and plan updates are synchronous.
 
 Full plans and secondary comparison details are mutually exclusive disclosures.
 Their labeled, keyboard-focusable content scrolls independently only on desktop
@@ -334,31 +333,13 @@ helpers and tests remain intact; the customer app no longer runs population
 aggregation or renders research charts. Missing observations, cohort selection
 and unavailable scenarios remain explicit in the research report.
 
-Selecting or clearing a shock triggers a falling drop and two expanding brand-color
-ellipses clipped inside that control. They never float below it or cover adjacent
-fields. A timeout removes the feedback even if animation events are interrupted.
-Changed comparison rows and, when changed, the
-runway outcome and next-step message receive staggered emphasis. A discrete interaction lasts
-**700 ms**. Calculations and annotations update immediately. Continuous slider
-or numeric input gets one smaller ripple after **180 ms** without input,
-rather than repeated large effects during a drag. Stable rows preserve keyboard
-focus. Reset, invalid scenarios and account changes clear pending and active
-feedback. Loading uses readable status text without a looping animation.
-CSS and JavaScript honor `prefers-reduced-motion`; changing the preference
-stops feedback while retaining the updated numbers, differences and annotation.
-Browser QA captures real interaction frames and checks these states, contrast,
-mobile layout, loading behavior and input-update timing.
-
-A clipped water-surface highlight moves across filled **After** comparison bars
-and the savings progress bar for **1200 ms**, once per relevant settled change.
-During scenario changes, only affected financial bars
-move; savings progress responds to buffer changes. The surface stays inside
-the existing filled amount, including negative comparison values, without
-tweening the amount or inventing a value for zero. Opening an account, exploration,
-a detailed comparison or a full plan does not start motion. There is no idle motion,
-infinite animation or loading metaphor. Reset, invalid input, account changes,
-panel closure and reduced motion clear the effects. Native progress semantics,
-signed differences, chart labels and financial calculations remain intact.
+Scenario controls, comparison bars, runway and next-step content update directly
+without decorative animations. Drop/ring effects, animated emphasis, input-settle
+motion timers and water-surface overlays have been removed. Native savings
+progress, signed differences, chart geometry and financial calculations remain
+intact. Changing a checkbox, slider or number input does not add an animation;
+account switching, reset and disclosures retain their normal behavior. The
+static Ripple brand mark is unchanged.
 
 Monthly charts have an explicit **260px** desktop / **240px** mobile height,
 unchanged between six- and twelve-month views. The renderer reveals history
@@ -483,15 +464,13 @@ geometry, visible desktop chart/mobile baseline context, keyboard disclosures,
 account switching, reset, invalid inputs, negative buffers and reduced motion.
 
 The brand-motion suite checks green incoming/blue outgoing series and legends,
-AA text contrast, lime bar boundaries, contextual focus, control-contained ripples,
-visible clipped water surfaces, finite playback and fallback cleanup, unchanged
-progress amounts and reduced motion. It checks signed badge colors, zero and
-sub-cent changes across the primary and detailed comparisons, plus dark Money In
-metric text. It also measures footer alignment and
-responsive stacking from 320px to 1920px.
-It saves real bar/progress interaction frames and contrast measurements beside
-the other temporary QA artifacts. The complete financial and connected-journey
-checks remain required for brand changes.
+AA text contrast, lime bar boundaries, contextual focus and animation-free
+scenario interactions. It verifies immediate slider/number synchronization,
+static native savings progress, signed badge colors, zero and sub-cent changes
+across primary and detailed comparisons, and dark Money In metric text.
+It also measures footer alignment and responsive stacking from 320px to 1920px,
+and saves screenshots and contrast measurements as temporary QA artifacts.
+The financial and connected-journey checks remain required for brand changes.
 
 The personal-dashboard suite verifies 1440×900 and 1536×864 desktop layouts,
 tablet/mobile flow, readable twelve-month charts, immediate changed-only bars,

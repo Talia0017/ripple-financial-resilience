@@ -1,4 +1,4 @@
-// Real-browser checks for palette semantics, contrast, finite water motion and unchanged amounts.
+// Real-browser checks for palette semantics, contrast, static scenarios and unchanged amounts.
 import assert from "node:assert/strict";
 import {mkdir,writeFile,readFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
@@ -26,6 +26,10 @@ async function checkSignedChanges(page){
  }
  return badges;
 }
+async function checkStaticScenario(page){
+ check(await page.locator(".shock-wave,.ripple-impact,.ripple-source,.water-sheen,.is-flowing,#goal-water").count()===0,"Scenario interactions never create decorative ripple or water elements");
+ check(await page.evaluate(()=>document.getAnimations().filter(item=>item.effect?.target?.closest?.(".scenario-workspace")).length===0),"Scenario controls and results update without replacement animations");
+}
 async function checkFooter(page,width){
  const layout=await page.locator("footer").evaluate(footer=>{
   const rect=item=>{const r=item.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,center:(r.top+r.bottom)/2};};
@@ -51,87 +55,61 @@ try{
    const light=v=>rgb(v).map(c=>{const n=c/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;}).reduce((s,p,i)=>s+p*[.2126,.7152,.0722][i],0);
    const contrast=(a,b)=>{const [lo,hi]=[light(a),light(b)].sort((a,b)=>a-b);return(hi+.05)/(lo+.05);};
    const root=getComputedStyle(document.documentElement),white="rgb(255,255,255)";
-   return {brand:root.getPropertyValue("--brand").trim(),accent:root.getPropertyValue("--accent").trim(),in:style(".bar-in").fill,out:style(".bar-out").fill,legendIn:style(".key.in").backgroundColor,legendOut:style(".key.out").backgroundColor,button:contrast(style("#lookup-button").color,style("#lookup-button").backgroundColor),body:contrast(root.color,root.backgroundColor),muted:contrast(style(".metrics-context").color,root.backgroundColor),heading:contrast(style("h2").color,white),incoming:contrast(style('.metric strong[data-metric="income"]').color,white),limeEdge:contrast(style(".bar-in").stroke,white),limeInk:contrast(root.getPropertyValue("--accent-ink"),root.getPropertyValue("--accent"))};
+   return {brand:root.getPropertyValue("--brand").trim(),accent:root.getPropertyValue("--accent").trim(),in:style(".bar-in").fill,out:style(".bar-out").fill,legendIn:style(".key.in").backgroundColor,legendOut:style(".key.out").backgroundColor,button:contrast(style("#lookup-button").color,style("#lookup-button").backgroundColor),body:contrast(root.color,root.backgroundColor),muted:contrast(style(".metrics-context").color,root.backgroundColor),heading:contrast(style("h2").color,white),incoming:contrast(style('.metric strong[data-metric="income"]').color,white),limeEdge:contrast(style(".bar-in").stroke,white)};
   });
   check(palette.brand==="#3D38F5"&&palette.accent==="#C2EE14","Brand tokens use the requested exact colors");
   check(await page.locator('.metric strong[data-metric="income"]').evaluate(item=>getComputedStyle(item).color===getComputedStyle(document.documentElement).color),"The main Money In amount uses the normal dark text color");
   check(palette.in==="rgb(194, 238, 20)"&&palette.out==="rgb(61, 56, 245)"&&palette.legendIn===palette.in&&palette.legendOut===palette.out,"Cash-flow bars and legends consistently use green for Money In and blue for Money Out");
-  for(const key of ["button","body","muted","heading","incoming","limeInk"])check(palette[key]>=4.5,`${key} text meets WCAG AA contrast`);
+  for(const key of ["button","body","muted","heading","incoming"])check(palette[key]>=4.5,`${key} text meets WCAG AA contrast`);
   check(palette.limeEdge>=3,"Lime graphics have a visible boundary against the white plot");reports.push({width,...palette});
   await page.locator("#explore-change").click();
   check(await page.locator(".shock-wave,.is-flowing").count()===0,"Opening exploration does not trigger a ripple");
   check(await page.locator("header nav").count()===0 && await page.locator("#job-loss").evaluate(item=>item===document.activeElement),"Exploration keeps keyboard focus without redundant header navigation");
   await page.locator("#job-loss").check();
-  check(await page.locator(".shock-wave").evaluate(wave=>{
-   const control=wave.parentElement.getBoundingClientRect(),r=wave.getBoundingClientRect();
-   return wave.parentElement.matches(".shock-option")&&r.left>=control.left-1&&r.right<=control.right+1&&r.top>=control.top-1&&r.bottom<=control.bottom+1&&getComputedStyle(wave).overflow==="hidden";
-  }),"Ripple stays clipped inside the selected control instead of floating below it");
   check(await page.locator("#after-runway").textContent()===runwayHeading(simulate(profiles.get("39859"),{job_loss:true})),"Scenario updates immediately using the preserved financial engine");
   const delta=await page.locator(".is-changed .comparison-change dd").first().evaluate(item=>({color:getComputedStyle(item).color,background:getComputedStyle(item).backgroundColor}));
   check(delta.color==="rgb(61, 56, 245)"&&delta.background==="rgb(241, 241, 246)","The negative income change uses blue text on the light gray badge");
   const signs=await checkSignedChanges(page);
   check(signs.some(item=>item.text.startsWith("+"))&&signs.some(item=>item.text.startsWith("−"))&&signs.some(item=>item.text==="$0.00"),"Positive, negative and unchanged amounts are covered together");
-  check(await page.locator(".ripple-impact").evaluateAll(items=>items.every(item=>getComputedStyle(item).backgroundColor!=="rgb(240, 247, 212)")),"Affected results never flash large green background fills");
-  await page.waitForFunction(()=>document.querySelector(".comparison-after .pair-bar.is-flowing"));
-  check(await page.locator(".comparison-before .water-sheen").count()===0,"Original values never acquire simulated water motion");
-  const colors=await page.locator(".comparison-after .bar-after").first().evaluate(item=>({fill:getComputedStyle(item).fill,stroke:getComputedStyle(item).stroke}));
-  check(colors.fill==="rgb(194, 238, 20)","After bars use the simulated-state accent");
-  check(await page.locator(".comparison-after .pair-bar").first().evaluate(svg=>{
-   const bar=svg.querySelector(".bar-after"),clip=svg.querySelector("clipPath rect");return bar.getAttribute("x")===clip.getAttribute("x")&&bar.getAttribute("width")===clip.getAttribute("width");
-  }),"The water surface is clipped to the exact filled amount");
-  await page.waitForTimeout(350);
-  const sheen=await page.locator(".comparison-after .water-sheen").first().evaluate(item=>({opacity:Number(getComputedStyle(item).opacity),transform:getComputedStyle(item).transform,clip:item.parentElement.getAttribute("clip-path")}));
-  check(sheen.opacity>0&&sheen.transform!=="none"&&sheen.clip.startsWith("url(#"),"An actual, clipped directional water surface is painted during normal use");
-  await page.locator(".comparison-after .pair-bar").first().screenshot({path:path.join(output,`${width}-water-current.png`),animations:"allow"});
-  await page.screenshot({path:path.join(output,`${width}-after-comparison.png`),animations:"allow"});
-  await page.waitForFunction(()=>!document.querySelector(".is-flowing"));
-  check(await page.evaluate(()=>document.getAnimations().every(a=>a.effect.getTiming().iterations!==Infinity)),"No idle or perpetual loading-like animation remains");
-  await page.locator("#ei-rate-number").fill("80");
-  await page.waitForFunction(()=>document.querySelector('.comparison-metric[data-metric="income"] .is-flowing'));
-  check(await page.locator('.comparison-metric[data-metric="spending"] .is-flowing, .comparison-metric[data-metric="buffer_left"] .is-flowing').count()===0,"Changing income sends water feedback only through affected financial bars");
-  await page.waitForFunction(()=>!document.querySelector(".is-flowing"));
+  await checkStaticScenario(page);
+  check(await page.locator(".comparison-after .bar-after").first().evaluate(item=>getComputedStyle(item).fill==="rgb(194, 238, 20)"),"Static After bars retain the existing accent");
+  await page.screenshot({path:path.join(output,`${width}-after-comparison.png`)});
+  await page.locator("#ei-rate").evaluate(input=>{input.value="80";input.dispatchEvent(new Event("input",{bubbles:true}));});
+  check(await page.locator("#ei-rate-number").inputValue()==="80"&&await page.locator("#after-runway").textContent()===runwayHeading(simulate(profiles.get("39859"),{job_loss:true,ei_rate:.8})),"The slider still synchronizes the number input and immediate result");
   await page.locator("#full-plan-details>summary").click();
-  check(await page.locator(".shock-wave,.is-flowing").count()===0,"Opening a plan reveals its values without starting decorative motion");
   const plan=savingsPlan(profiles.get("39859"),simulate(profiles.get("39859"),{job_loss:true,ei_rate:.8}));
-  check(await page.locator("#goal-progress").evaluate(item=>item.value)===Math.min(plan.available,plan.goal),"Savings surface motion leaves the semantic progress amount unchanged");
+  check(await page.locator("#goal-progress").evaluate(item=>item.value)===Math.min(plan.available,plan.goal),"The native static savings progress preserves the calculated amount");
+  await checkStaticScenario(page);
   await page.locator("#emergency-repair").check();
-  await page.locator("#repair-cost").fill(String(profiles.get("39859").buffer-profiles.get("39859").spending));
-  await page.waitForFunction(()=>document.querySelector("#goal-water .is-flowing"));
-  await page.waitForTimeout(500);await page.locator(".goal-meter").screenshot({path:path.join(output,`${width}-savings-current.png`),animations:"allow"});
-  check(await page.locator("#goal-water .water-sheen").evaluate(item=>Number(getComputedStyle(item).opacity)>0),"Savings progress paints the same restrained water surface");
+  const repair=profiles.get("39859").buffer-profiles.get("39859").spending;
+  await page.locator("#repair-cost").fill(String(repair));
+  const revised=savingsPlan(profiles.get("39859"),simulate(profiles.get("39859"),{job_loss:true,ei_rate:.8,emergency_repair:true,repair_cost:repair}));
+  check(await page.locator("#goal-progress").evaluate(item=>item.value)===Math.min(revised.available,revised.goal),"Repair changes update static goal progress without changing its calculation");
+  await page.locator(".goal-meter").screenshot({path:path.join(output,`${width}-savings-static.png`)});
+  await checkStaticScenario(page);
   await page.locator("#emergency-repair").uncheck();
   await page.emulateMedia({reducedMotion:"reduce"});
-  await page.waitForFunction(()=>!document.querySelector(".is-flowing,.ripple-impact,.shock-wave"));
   await page.locator("#ei-rate-number").fill("65");
-  check(await page.locator("#after-runway").textContent()===runwayHeading(simulate(profiles.get("39859"),{job_loss:true,ei_rate:.65})),"Reduced motion retains immediate financial updates");
-  check(await page.locator(".water-sheen").evaluateAll(items=>items.every(item=>getComputedStyle(item).animationName==="none"&&Number(getComputedStyle(item).opacity)===0)),"Reduced motion disables every flowing surface");
-  check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"Brand refinements retain responsive page width");
+  check(await page.locator("#ei-rate").inputValue()==="65"&&await page.locator("#after-runway").textContent()===runwayHeading(simulate(profiles.get("39859"),{job_loss:true,ei_rate:.65})),"Number input, slider and calculations remain synchronized under reduced motion");
+  await checkStaticScenario(page);
+  check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"Static scenario controls retain responsive page width");
   await page.locator("#emergency-repair").check();await page.locator("#repair-cost").fill(String(profiles.get("39859").buffer+1));
   check(await page.locator('.comparison-metric[data-metric="buffer_left"] .comparison-after svg').evaluate(svg=>{
-   const bar=svg.querySelector(".bar-after"),clip=svg.querySelector("clipPath rect");return Number(bar.getAttribute("x"))<Number(svg.querySelector(".zero-line").getAttribute("x1"))&&bar.getAttribute("x")===clip.getAttribute("x")&&bar.getAttribute("width")===clip.getAttribute("width");
-  }),"A negative buffer's water mask follows its exact negative bar from the real zero origin");
-  check(await page.locator("#goal-water .water-sheen").count()===0&&await page.locator("#goal-progress").evaluate(item=>item.value)===0,"Depleted savings never paint a positive liquid surface");
+   const bar=svg.querySelector(".bar-after");return Number(bar.getAttribute("x"))<Number(svg.querySelector(".zero-line").getAttribute("x1"))&&Number(bar.getAttribute("width"))>0;
+  }),"A negative buffer retains its exact signed bar relative to the zero origin");
+  check(await page.locator("#goal-progress").evaluate(item=>item.value)===0,"Depleted savings retain zero native progress");
   await page.locator("#ei-rate-number").fill("0");
-  check(await page.locator('.comparison-metric[data-metric="income"] .comparison-after .bar-after, .comparison-metric[data-metric="income"] .comparison-after .water-sheen').count()===0,"Zero scenario amounts have neither a fake filled bar nor a moving water surface");
-  await page.locator("#reset-scenario").click();check(await page.locator(".is-flowing,.shock-wave").count()===0,"Reset removes pending and active feedback");
-  await page.emulateMedia({reducedMotion:"no-preference"});
-  // Use the same-origin stylesheet so fault injection respects the production CSP.
-  const suppressionIndex=await page.evaluate(()=>{
-   const sheet=[...document.styleSheets].find(item=>item.href?.endsWith("/styles.css"));
-   return sheet.insertRule(".shock-wave,.ripple-impact,.is-flowing .water-sheen{animation:none!important}",sheet.cssRules.length);
-  });
-  await page.locator("#job-loss").check();
-  await page.waitForFunction(()=>!document.querySelector(".shock-wave,.ripple-source,.ripple-impact,.is-flowing"),null,{timeout:3000});
-  check(await page.locator(".shock-wave,.ripple-source").count()===0,"Fallback cleanup removes feedback even if animation events never fire");
-  await page.evaluate(index=>[...document.styleSheets].find(item=>item.href?.endsWith("/styles.css")).deleteRule(index),suppressionIndex);
-  await page.emulateMedia({reducedMotion:"reduce"});
+  check(await page.locator('.comparison-metric[data-metric="income"] .comparison-after .bar-after').count()===0,"Zero scenario amounts have no fake filled bar");
+  await page.locator("#reset-scenario").click();
+  check(await page.locator("#comparison").isHidden(),"Reset still clears the scenario result");
+  await page.emulateMedia({reducedMotion:"no-preference"});await page.locator("#job-loss").check();
   await page.locator("#higher-bills").check();await page.locator("#emergency-repair").check();
-  await checkSignedChanges(page);
-  await page.locator("#before-after-details>summary").click();
-  await checkSignedChanges(page);
+  await checkSignedChanges(page);await checkStaticScenario(page);
+  await page.locator("#before-after-details>summary").click();await checkSignedChanges(page);
   await page.locator("#reset-scenario").click();await page.locator("#emergency-repair").check();await page.locator("#repair-cost").fill("0.001");
   const tiny=await checkSignedChanges(page);
   check(tiny.some(item=>item.text==="−< $0.01"&&item.color==="rgb(61, 56, 245)"),"Sub-cent decreases retain their blue minus sign instead of becoming a neutral zero");
+  await page.waitForTimeout(300);await checkStaticScenario(page);
   await checkFooter(page,width);
   await ctx.close();
  }
