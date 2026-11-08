@@ -56,10 +56,12 @@ credentials or put tokens into tracked files or command URLs.
 - Measure charts after revealing their content, using the visible cash-flow
   panel. Preserve explicit monthly plot heights (260px desktop, 240px mobile)
   and matching SVG coordinates; never magnify a hidden plot's fallback width.
-- Brand: #3D38F5 for identity and Money Out; #C2EE14 for Money In and small
+- Brand: #3D38F5 for identity and Money Out; #AED904 for Money In and small
   After-state or positive accents. Match cash-flow legends to the series.
-  Keep the main Money In value dark. Change badges retain light gray surfaces:
-  positive amounts use readable green #4D6500, negative amounts use blue, and
+  Use exact lime #AED904 for the main Money In value and all positive changes.
+  Share the accent variable and use tight dark backing for lime text to maintain
+  readable contrast without changing layout. Change badges retain light gray
+  outer surfaces; negative amounts use blue, and
   zero stays neutral. These colors indicate arithmetic sign, not financial benefit.
   Use neutral surfaces, dark body text and dark
   outlines on lime chart bars. After-state green does not guarantee a favorable outcome.

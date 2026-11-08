@@ -13,15 +13,17 @@ const browser=await chromium.launch({channel:"chrome",headless:true});let checks
 const check=(value,message)=>{assert.ok(value,message);checks++;};
 async function checkSignedChanges(page){
  const badges=await page.locator(".comparison-change dd").evaluateAll(items=>items.map(item=>{
-  const style=getComputedStyle(item),text=item.firstChild.textContent;
+  const style=getComputedStyle(item),valueStyle=getComputedStyle(item.querySelector(".change-value")),text=item.firstChild.textContent;
+  const backing=text.startsWith("+")?valueStyle.backgroundColor:style.backgroundColor;
   const luminance=value=>value.match(/[\d.]+/g).slice(0,3).map(Number).map(c=>{const n=c/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;}).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
-  const [lo,hi]=[luminance(style.color),luminance(style.backgroundColor)].sort((a,b)=>a-b);
-  return {text,color:style.color,background:style.backgroundColor,contrast:(hi+.05)/(lo+.05)};
+  const [lo,hi]=[luminance(valueStyle.color),luminance(backing)].sort((a,b)=>a-b);
+  return {text,color:valueStyle.color,background:style.backgroundColor,backing,contrast:(hi+.05)/(lo+.05)};
  }));
  check(badges.length===4,"Primary and detailed comparisons retain every metric");
  for(const badge of badges){
-  const expected=badge.text.startsWith("+")?"rgb(77, 101, 0)":badge.text.startsWith("−")?"rgb(61, 56, 245)":"rgb(96, 97, 110)";
+  const expected=badge.text.startsWith("+")?"rgb(174, 217, 4)":badge.text.startsWith("−")?"rgb(61, 56, 245)":"rgb(96, 97, 110)";
   check(badge.color===expected&&badge.background==="rgb(241, 241, 246)","Every comparison badge uses its displayed arithmetic sign on a light gray background");
+  if(badge.text.startsWith("+"))check(badge.backing==="rgb(36, 38, 51)","Exact lime positive text has a dark backing inside the gray badge");
   check(badge.contrast>=4.5,"Signed and zero change text meets AA contrast on the badge background");
  }
  return badges;
@@ -55,11 +57,11 @@ try{
    const light=v=>rgb(v).map(c=>{const n=c/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;}).reduce((s,p,i)=>s+p*[.2126,.7152,.0722][i],0);
    const contrast=(a,b)=>{const [lo,hi]=[light(a),light(b)].sort((a,b)=>a-b);return(hi+.05)/(lo+.05);};
    const root=getComputedStyle(document.documentElement),white="rgb(255,255,255)";
-   return {brand:root.getPropertyValue("--brand").trim(),accent:root.getPropertyValue("--accent").trim(),in:style(".bar-in").fill,out:style(".bar-out").fill,legendIn:style(".key.in").backgroundColor,legendOut:style(".key.out").backgroundColor,button:contrast(style("#lookup-button").color,style("#lookup-button").backgroundColor),body:contrast(root.color,root.backgroundColor),muted:contrast(style(".metrics-context").color,root.backgroundColor),heading:contrast(style("h2").color,white),incoming:contrast(style('.metric strong[data-metric="income"]').color,white),limeEdge:contrast(style(".bar-in").stroke,white)};
+   return {brand:root.getPropertyValue("--brand").trim(),accent:root.getPropertyValue("--accent").trim(),in:style(".bar-in").fill,out:style(".bar-out").fill,legendIn:style(".key.in").backgroundColor,legendOut:style(".key.out").backgroundColor,button:contrast(style("#lookup-button").color,style("#lookup-button").backgroundColor),body:contrast(root.color,root.backgroundColor),muted:contrast(style(".metrics-context").color,root.backgroundColor),heading:contrast(style("h2").color,white),incoming:contrast(style(".lime-value").color,style(".lime-value").backgroundColor),limeEdge:contrast(style(".bar-in").stroke,white)};
   });
-  check(palette.brand==="#3D38F5"&&palette.accent==="#C2EE14","Brand tokens use the requested exact colors");
-  check(await page.locator('.metric strong[data-metric="income"]').evaluate(item=>getComputedStyle(item).color===getComputedStyle(document.documentElement).color),"The main Money In amount uses the normal dark text color");
-  check(palette.in==="rgb(194, 238, 20)"&&palette.out==="rgb(61, 56, 245)"&&palette.legendIn===palette.in&&palette.legendOut===palette.out,"Cash-flow bars and legends consistently use green for Money In and blue for Money Out");
+  check(palette.brand==="#3D38F5"&&palette.accent==="#AED904","Brand tokens use the requested exact colors");
+  check(await page.locator(".lime-value").evaluate(item=>getComputedStyle(item).color==="rgb(174, 217, 4)"&&getComputedStyle(item).backgroundColor==="rgb(36, 38, 51)"),"The main Money In amount uses exact lime text on dark backing");
+  check(palette.in==="rgb(174, 217, 4)"&&palette.out==="rgb(61, 56, 245)"&&palette.legendIn===palette.in&&palette.legendOut===palette.out,"Cash-flow bars and legends consistently use green for Money In and blue for Money Out");
   for(const key of ["button","body","muted","heading","incoming"])check(palette[key]>=4.5,`${key} text meets WCAG AA contrast`);
   check(palette.limeEdge>=3,"Lime graphics have a visible boundary against the white plot");reports.push({width,...palette});
   await page.locator("#explore-change").click();
@@ -72,7 +74,7 @@ try{
   const signs=await checkSignedChanges(page);
   check(signs.some(item=>item.text.startsWith("+"))&&signs.some(item=>item.text.startsWith("−"))&&signs.some(item=>item.text==="$0.00"),"Positive, negative and unchanged amounts are covered together");
   await checkStaticScenario(page);
-  check(await page.locator(".comparison-after .bar-after").first().evaluate(item=>getComputedStyle(item).fill==="rgb(194, 238, 20)"),"Static After bars retain the existing accent");
+  check(await page.locator(".comparison-after .bar-after").first().evaluate(item=>getComputedStyle(item).fill==="rgb(174, 217, 4)"),"Static After bars retain the existing accent");
   await page.screenshot({path:path.join(output,`${width}-after-comparison.png`)});
   await page.locator("#ei-rate").evaluate(input=>{input.value="80";input.dispatchEvent(new Event("input",{bubbles:true}));});
   check(await page.locator("#ei-rate-number").inputValue()==="80"&&await page.locator("#after-runway").textContent()===runwayHeading(simulate(profiles.get("39859"),{job_loss:true,ei_rate:.8})),"The slider still synchronizes the number input and immediate result");

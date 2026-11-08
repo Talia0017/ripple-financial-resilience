@@ -250,6 +250,7 @@ function chooseAccount(accountId) {
   $("metrics").replaceChildren(...definitions.map(([label, key, help]) => {
     const card = element("article", undefined, "metric");
     const value = element("strong", money(profile[key]));value.dataset.metric = key;
+    if (key === "income") value.replaceChildren(element("span", value.textContent, "lime-value"));
     const heading = element("div", undefined, "metric-heading");
     const info = element("details", undefined, "metric-info");
     const trigger = element("summary", "i");

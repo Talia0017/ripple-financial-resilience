@@ -7,9 +7,11 @@
   --page: #f7f7f9;
   --brand-soft: #eeedff;
   --baseline-soft: #c7c5ff;
-  --accent: #C2EE14;
+  --accent: #AED904;
   --accent-edge: #647d02;
-  --positive: #4D6500;
+  --positive: var(--accent);
+  --lime-backing: var(--ink);
+  --badge-background: #f1f1f6;
   --brand: #3D38F5;
   --muted: #60616e;
   --line: #e1e1e8;
@@ -456,7 +458,7 @@ h1 { margin-bottom: 4px; }
 .outcome { background: #f7f7fa; box-shadow: inset 4px 0 var(--accent); }
 .runway-value { color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 4px; text-underline-offset: 6px; }
 .scenario-delta, .shock-section .is-changed, .shock-section #scenario-insight { border-left-color: var(--accent-edge); }
-.scenario-difference { color: var(--ink); background: #f1f1f6; border-radius: 4px; padding: 0 6px; align-self: start; }
+.scenario-difference { color: var(--ink); background: var(--badge-background); border-radius: 4px; padding: 0 6px; align-self: start; }
 .shock-section .is-changed .comparison-change dd { color: var(--ink); box-shadow: inset 0 -3px var(--accent); }
 .goal-meter { display: block; padding: 10px 0 4px; }
 .goal-progress { display: block; margin: 0; }
@@ -499,11 +501,13 @@ footer { width: calc(100% - 48px); max-width: 1440px; margin: 24px auto 0; displ
 .scenario-workspace .pair-bar { grid-column: 1/-1; height: 16px; margin: 0; }
 .scenario-workspace .comparison-change { grid-column: 2; grid-row: 1; justify-self: end; display: block; }
 .scenario-workspace .comparison-change dt, .scenario-workspace .change-direction { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
-.scenario-workspace .comparison-change dd { display: block; font-size: 16px; line-height: 1.4; color: var(--ink); background: #f1f1f6; border-radius: 4px; padding: 0 6px; box-shadow: none; }
+.scenario-workspace .comparison-change dd { display: block; font-size: 16px; line-height: 1.4; color: var(--ink); background: var(--badge-background); border-radius: 4px; padding: 0 6px; box-shadow: none; }
 .scenario-workspace .is-unchanged .comparison-change dd { color: var(--muted); }
 .scenario-workspace .is-changed .comparison-change dd { color: var(--ink); box-shadow: none; }
 .scenario-workspace .comparison-change dd[data-sign=positive] { color: var(--positive); }
 .scenario-workspace .comparison-change dd[data-sign=negative] { color: var(--brand); }
+/* Dark backing preserves the exact lime hue and contrast without changing text geometry. */
+.lime-value, .scenario-workspace .comparison-change dd[data-sign=positive] .change-value { background: var(--lime-backing); border-radius: 3px; box-shadow: 0 0 0 2px var(--lime-backing); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .scenario-workspace #scenario-insight { margin: 10px 0 12px; }
 .next-step { padding-top: 10px; }
 .next-step-heading { margin-bottom: 4px; }
@@ -546,7 +550,7 @@ footer { width: calc(100% - 48px); max-width: 1440px; margin: 24px auto 0; displ
 .footer-credit { display: grid; justify-items: start; gap: 4px; }
 .footer-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 24px; }
 .footer-links a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; text-underline-offset: 3px; }
-.metric strong[data-metric=income] { color: var(--ink); }
+.metric strong[data-metric=income] { color: var(--positive); }
 #plan-context { margin: 0 0 8px; }
 @media(max-width:900px) {
   footer { grid-template-columns: minmax(0,1fr); gap: 12px; }
