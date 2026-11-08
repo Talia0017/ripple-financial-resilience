@@ -56,9 +56,10 @@ credentials or put tokens into tracked files or command URLs.
 - Measure charts after revealing their content, using the visible cash-flow
   panel. Preserve explicit monthly plot heights (260px desktop, 240px mobile)
   and matching SVG coordinates; never magnify a hidden plot's fallback width.
-- Brand: #3D38F5 for identity and historical context; #C2EE14 for money out,
-  simulated states and differences. Use neutral surfaces, dark body text and
-  dark outlines on lime chart bars. Lime does not mean a favorable outcome.
+- Brand: #3D38F5 for identity and Money Out; #C2EE14 for Money In and small
+  After-state or positive accents. Match cash-flow legends to the series.
+  Use neutral surfaces, neutral signed-change badges, dark body text and dark
+  outlines on lime chart bars. After-state green does not guarantee a favorable outcome.
   The SVG mark uses a drop and three open perspective waves.
 - Selected shock cards use light blue #EAF1FF with the blue border and native
   blue checkmark. Keep lime for financial comparisons, not the selected fill.
@@ -67,9 +68,13 @@ credentials or put tokens into tracked files or command URLs.
   About area and footer, metric definitions in native disclosures, and retained
   section anchors. Record metadata and plan assumptions belong in details.
 - Shock feedback lasts 700ms; continuous inputs get one smaller ripple after
-  180ms idle. Filled After bars and savings progress can show a finite 1200ms
-  water surface on relevant changes or disclosure. Never loop it, animate a
+  180ms idle. Clip feedback inside its source control and enforce timed cleanup
+  even if animation events fail. Filled After bars and savings progress can show
+  a finite 1200ms water surface only on relevant scenario changes. Opening an
+  account or disclosure must not start motion. Never loop it, animate a
   financial amount, delay calculations or bypass reduced-motion preferences.
+- Footer: align credit information as a left-hand stack and links as a balanced
+  right-hand group inside the main content gutters. Stack groups on narrow screens.
 - Keep one connected account workspace: historical metrics and cash flow in the
   left overview; controls, runway, immediate changed-only Before/After bars and
   the next step on the right. Use available desktop width with modest gutters,

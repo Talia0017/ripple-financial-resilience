@@ -80,10 +80,13 @@ try {
   await page.waitForTimeout(40);
   check(await page.locator(".water-drop").evaluate(item => Number(getComputedStyle(item).opacity)>0), "The actual falling drop is painted before wave expansion");
   await page.screenshot({path:path.join(output,"motion-drop.png"),animations:"allow"});
-  await page.waitForTimeout(120);
-  await page.screenshot({path:path.join(output,"motion-impact.png"),animations:"allow"});
+  await page.waitForFunction(() => {
+    const svg=document.querySelector(".shock-wave");
+    return svg && [...svg.querySelectorAll("ellipse")].some(item=>Number(getComputedStyle(item).opacity)>0&&item.getBoundingClientRect().width>8);
+  });
   const visible = await page.locator(".shock-wave").evaluate(svg => ({opacity:Number(getComputedStyle(svg).opacity),rings:[...svg.querySelectorAll("ellipse")].map(item=>({opacity:Number(getComputedStyle(item).opacity),width:item.getBoundingClientRect().width}))}));
-  check(visible.opacity>0 && visible.rings.some(item=>item.opacity>0 && item.width>15), "Normal-use motion includes painted, visible expanding rings");
+  check(visible.opacity>0 && visible.rings.some(item=>item.opacity>0 && item.width>8), "Normal-use motion includes painted, compact expanding rings inside the control");
+  await page.screenshot({path:path.join(output,"motion-impact.png"),animations:"allow"});
   await page.waitForTimeout(120);await page.screenshot({path:path.join(output,"motion-spread.png"),animations:"allow"});
   await page.waitForFunction(() => !document.querySelector(".shock-wave"));
   await page.screenshot({path:path.join(output,"motion-finished.png"),animations:"allow"});

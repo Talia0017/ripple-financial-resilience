@@ -11,30 +11,49 @@ const output=process.env.RIPPLE_SCREENSHOTS||path.join(tmpdir(),"ripple-brand-mo
 const profiles=decodeProfiles(JSON.parse(await readFile(new URL("../../public/data/profiles.json",import.meta.url))));
 const browser=await chromium.launch({channel:"chrome",headless:true});let checks=0;const errors=[],reports=[];
 const check=(value,message)=>{assert.ok(value,message);checks++;};
+async function checkFooter(page,width){
+ const layout=await page.locator("footer").evaluate(footer=>{
+  const rect=item=>{const r=item.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,center:(r.top+r.bottom)/2};};
+  return {footer:rect(footer),credit:rect(footer.querySelector(".footer-credit")),links:rect(footer.querySelector(".footer-links")),items:[...footer.querySelectorAll(".footer-credit>*")].map(rect),main:rect(document.querySelector("main"))};
+ });
+ check(layout.items.every(item=>Math.abs(item.left-layout.credit.left)<1),"Footer identity, author and Datathon information share a clean left edge");
+ check(Math.abs(layout.footer.left-(layout.main.left+24))<1&&Math.abs(layout.footer.right-(layout.main.right-24))<1,"Footer aligns with the main content gutters");
+ if(width>900)check(layout.links.left>=layout.credit.right&&Math.abs(layout.links.center-layout.credit.center)<1,"Desktop footer links sit on the right with vertical balance");
+ else check(layout.links.top>=layout.credit.bottom&&Math.abs(layout.links.left-layout.credit.left)<1,"Narrow footers stack links beneath the credit with a shared left edge");
+ check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"Footer never adds horizontal page overflow");
+ await page.locator("footer").screenshot({path:path.join(output,`${width}-footer.png`)});
+}
 try{
  for(const width of [1440,375,320]){
   const ctx=await browser.newContext({viewport:{width,height:900},reducedMotion:"no-preference",deviceScaleFactor:2});
   const page=await ctx.newPage();page.on("pageerror",e=>errors.push(e.message));
   await page.goto(base);await page.waitForFunction(()=>!document.getElementById("lookup-button").disabled);
   await page.locator("#account-id").fill("39859");await page.locator("#lookup-button").click();await page.locator("#history-content").waitFor();
+  check(await page.locator(".shock-wave,.ripple-impact,.is-flowing").count()===0,"Account loading never starts decorative scenario motion");
   const palette=await page.evaluate(()=>{
    const style=s=>getComputedStyle(document.querySelector(s));
    const rgb=v=>v.trim().startsWith("#")?[1,3,5].map(i=>parseInt(v.trim().slice(i,i+2),16)):v.match(/[\d.]+/g).slice(0,3).map(Number);
    const light=v=>rgb(v).map(c=>{const n=c/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;}).reduce((s,p,i)=>s+p*[.2126,.7152,.0722][i],0);
    const contrast=(a,b)=>{const [lo,hi]=[light(a),light(b)].sort((a,b)=>a-b);return(hi+.05)/(lo+.05);};
    const root=getComputedStyle(document.documentElement),white="rgb(255,255,255)";
-   return {brand:root.getPropertyValue("--brand").trim(),accent:root.getPropertyValue("--accent").trim(),in:style(".bar-in").fill,out:style(".bar-out").fill,button:contrast(style("#lookup-button").color,style("#lookup-button").backgroundColor),body:contrast(root.color,root.backgroundColor),muted:contrast(style(".metrics-context").color,root.backgroundColor),heading:contrast(style("h2").color,white),limeEdge:contrast(style(".bar-out").stroke,white),limeInk:contrast(root.getPropertyValue("--accent-ink"),root.getPropertyValue("--accent"))};
+   return {brand:root.getPropertyValue("--brand").trim(),accent:root.getPropertyValue("--accent").trim(),in:style(".bar-in").fill,out:style(".bar-out").fill,legendIn:style(".key.in").backgroundColor,legendOut:style(".key.out").backgroundColor,button:contrast(style("#lookup-button").color,style("#lookup-button").backgroundColor),body:contrast(root.color,root.backgroundColor),muted:contrast(style(".metrics-context").color,root.backgroundColor),heading:contrast(style("h2").color,white),incoming:contrast(style('.metric strong[data-metric="income"]').color,white),limeEdge:contrast(style(".bar-in").stroke,white),limeInk:contrast(root.getPropertyValue("--accent-ink"),root.getPropertyValue("--accent"))};
   });
   check(palette.brand==="#3D38F5"&&palette.accent==="#C2EE14","Brand tokens use the requested exact colors");
-  check(palette.in==="rgb(61, 56, 245)"&&palette.out==="rgb(194, 238, 20)","Cash-flow bars consistently distinguish money in and money out");
-  for(const key of ["button","body","muted","heading","limeInk"])check(palette[key]>=4.5,`${key} text meets WCAG AA contrast`);
+  check(palette.in==="rgb(194, 238, 20)"&&palette.out==="rgb(61, 56, 245)"&&palette.legendIn===palette.in&&palette.legendOut===palette.out,"Cash-flow bars and legends consistently use green for Money In and blue for Money Out");
+  for(const key of ["button","body","muted","heading","incoming","limeInk"])check(palette[key]>=4.5,`${key} text meets WCAG AA contrast`);
   check(palette.limeEdge>=3,"Lime graphics have a visible boundary against the white plot");reports.push({width,...palette});
   await page.locator("#explore-change").click();
+  check(await page.locator(".shock-wave,.is-flowing").count()===0,"Opening exploration does not trigger a ripple");
   check(await page.locator("header nav").count()===0 && await page.locator("#job-loss").evaluate(item=>item===document.activeElement),"Exploration keeps keyboard focus without redundant header navigation");
   await page.locator("#job-loss").check();
+  check(await page.locator(".shock-wave").evaluate(wave=>{
+   const control=wave.parentElement.getBoundingClientRect(),r=wave.getBoundingClientRect();
+   return wave.parentElement.matches(".shock-option")&&r.left>=control.left-1&&r.right<=control.right+1&&r.top>=control.top-1&&r.bottom<=control.bottom+1&&getComputedStyle(wave).overflow==="hidden";
+  }),"Ripple stays clipped inside the selected control instead of floating below it");
   check(await page.locator("#after-runway").textContent()===runwayHeading(simulate(profiles.get("39859"),{job_loss:true})),"Scenario updates immediately using the preserved financial engine");
   const delta=await page.locator(".is-changed .comparison-change dd").first().evaluate(item=>({color:getComputedStyle(item).color,background:getComputedStyle(item).backgroundColor}));
-  check(delta.color==="rgb(48, 59, 11)"&&delta.background==="rgb(194, 238, 20)","Changed amounts use readable dark text on the lime accent");
+  check(delta.color==="rgb(36, 38, 51)"&&delta.background==="rgb(241, 241, 246)","Signed changes use neutral badges rather than imply every change is positive");
+  check(await page.locator(".ripple-impact").evaluateAll(items=>items.every(item=>getComputedStyle(item).backgroundColor!=="rgb(240, 247, 212)")),"Affected results never flash large green background fills");
   await page.waitForFunction(()=>document.querySelector(".comparison-after .pair-bar.is-flowing"));
   check(await page.locator(".comparison-before .water-sheen").count()===0,"Original values never acquire simulated water motion");
   const colors=await page.locator(".comparison-after .bar-after").first().evaluate(item=>({fill:getComputedStyle(item).fill,stroke:getComputedStyle(item).stroke}));
@@ -54,11 +73,15 @@ try{
   check(await page.locator('.comparison-metric[data-metric="spending"] .is-flowing, .comparison-metric[data-metric="buffer_left"] .is-flowing').count()===0,"Changing income sends water feedback only through affected financial bars");
   await page.waitForFunction(()=>!document.querySelector(".is-flowing"));
   await page.locator("#full-plan-details>summary").click();
-  await page.waitForFunction(()=>document.querySelector("#goal-water .is-flowing"));
+  check(await page.locator(".shock-wave,.is-flowing").count()===0,"Opening a plan reveals its values without starting decorative motion");
   const plan=savingsPlan(profiles.get("39859"),simulate(profiles.get("39859"),{job_loss:true,ei_rate:.8}));
   check(await page.locator("#goal-progress").evaluate(item=>item.value)===Math.min(plan.available,plan.goal),"Savings surface motion leaves the semantic progress amount unchanged");
+  await page.locator("#emergency-repair").check();
+  await page.locator("#repair-cost").fill(String(profiles.get("39859").buffer-profiles.get("39859").spending));
+  await page.waitForFunction(()=>document.querySelector("#goal-water .is-flowing"));
   await page.waitForTimeout(500);await page.locator(".goal-meter").screenshot({path:path.join(output,`${width}-savings-current.png`),animations:"allow"});
   check(await page.locator("#goal-water .water-sheen").evaluate(item=>Number(getComputedStyle(item).opacity)>0),"Savings progress paints the same restrained water surface");
+  await page.locator("#emergency-repair").uncheck();
   await page.emulateMedia({reducedMotion:"reduce"});
   await page.waitForFunction(()=>!document.querySelector(".is-flowing,.ripple-impact,.shock-wave"));
   await page.locator("#ei-rate-number").fill("65");
@@ -73,7 +96,18 @@ try{
   await page.locator("#ei-rate-number").fill("0");
   check(await page.locator('.comparison-metric[data-metric="income"] .comparison-after .bar-after, .comparison-metric[data-metric="income"] .comparison-after .water-sheen').count()===0,"Zero scenario amounts have neither a fake filled bar nor a moving water surface");
   await page.locator("#reset-scenario").click();check(await page.locator(".is-flowing,.shock-wave").count()===0,"Reset removes pending and active feedback");
+  await page.emulateMedia({reducedMotion:"no-preference"});
+  const suppress=await page.addStyleTag({content:".shock-wave,.ripple-impact,.is-flowing .water-sheen{animation:none!important}"});
+  await page.locator("#job-loss").check();
+  await page.waitForFunction(()=>!document.querySelector(".shock-wave,.ripple-source,.ripple-impact,.is-flowing"),null,{timeout:3000});
+  check(await page.locator(".shock-wave,.ripple-source").count()===0,"Fallback cleanup removes feedback even if animation events never fire");
+  await suppress.evaluate(item=>item.remove());
+  await checkFooter(page,width);
   await ctx.close();
+ }
+ for(const width of [1920,1100,900,768]){
+  const ctx=await browser.newContext({viewport:{width,height:900},reducedMotion:"reduce"});const page=await ctx.newPage();
+  await page.goto(base);await checkFooter(page,width);await ctx.close();
  }
  assert.deepEqual(errors,[]);await writeFile(path.join(output,"contrast.json"),JSON.stringify(reports,null,2));
  console.log(JSON.stringify({checks,contrast:reports,javascriptErrors:errors,screenshots:output,result:"passed"},null,2));

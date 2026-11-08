@@ -277,12 +277,14 @@ viewport.
 ## Ripple identity and connected discoveries
 
 The interface uses **#3D38F5** for the brand, primary buttons,
-major headings, historical values and Money In. **#C2EE14** distinguishes
-Money Out, After bars, changed-amount badges and scenario outcome accents.
+major headings and Money Out. **#C2EE14** identifies Money In and small
+After-state accents. Cash-flow legends match their corresponding bars.
+Incoming metric text uses the darker green **#647D02** for readable contrast.
+Signed changes use neutral badges so a worsening gap is not presented as a positive result.
 Neutral surfaces, dark body text and gray dividers keep the layout restrained.
 Selected shock cards use a light-blue **#EAF1FF** fill, blue border and native blue
-checkmark. Lime marks a financial category or modeled change, not the selected
-control or a favorable outcome.
+checkmark. After-state green identifies the modeled comparison, not a guarantee
+of improvement. Large result surfaces remain neutral, including during feedback.
 Lime areas use dark text and visible dark outlines instead of light text on
 white. Browser checks verify text contrast and chart boundary contrast.
 The inline SVG brand mark uses a drop above three open, offset perspective wave
@@ -299,9 +301,10 @@ Its concise label uses months of typical spending; the accessible buffer
 definition explains that it ignores incoming money and is not financial runway
 or verified accessible savings.
 
-The footer credits **Renyin Xu**, retains **Sheridan Datathon 2026 · Tangerine
-Track**, and links to data/limitations, GitHub and the AI-assisted development
-disclosure. The organized About area states: **Uses anonymized Datathon account
+The footer stacks Ripple, **Renyin Xu** and **Sheridan Datathon 2026 · Tangerine
+Track** on the left, with data/limitations, GitHub and AI-assisted development
+links aligned on the right. Both groups share the main content gutters and stack
+on narrow screens. The organized About area states: **Uses anonymized Datathon account
 data. Not connected to your bank.** This keeps the main entry concise without
 removing data provenance or financial assumptions.
 
@@ -329,7 +332,9 @@ aggregation or renders research charts. Missing observations, cohort selection
 and unavailable scenarios remain explicit in the research report.
 
 Selecting or clearing a shock triggers a falling drop and two expanding brand-color
-ellipses beside that control. Changed comparison rows and, when changed, the
+ellipses clipped inside that control. They never float below it or cover adjacent
+fields. A timeout removes the feedback even if animation events are interrupted.
+Changed comparison rows and, when changed, the
 runway outcome and next-step message receive staggered emphasis. A discrete interaction lasts
 **700 ms**. Calculations and annotations update immediately. Continuous slider
 or numeric input gets one smaller ripple after **180 ms** without input,
@@ -342,12 +347,12 @@ Browser QA captures real interaction frames and checks these states, contrast,
 mobile layout, loading behavior and input-update timing.
 
 A clipped water-surface highlight moves across filled **After** comparison bars
-and the savings progress bar for **1200 ms**, once per relevant settled change
-or disclosure reveal. During scenario changes, only affected financial bars
+and the savings progress bar for **1200 ms**, once per relevant settled change.
+During scenario changes, only affected financial bars
 move; savings progress responds to buffer changes. The surface stays inside
 the existing filled amount, including negative comparison values, without
-tweening the amount or inventing a value for zero. Opening a detailed comparison
-or full plan reveals its current surfaces once. There is no idle motion,
+tweening the amount or inventing a value for zero. Opening an account, exploration,
+a detailed comparison or a full plan does not start motion. There is no idle motion,
 infinite animation or loading metaphor. Reset, invalid input, account changes,
 panel closure and reduced motion clear the effects. Native progress semantics,
 signed differences, chart labels and financial calculations remain intact.
@@ -474,9 +479,11 @@ unchanged baseline amounts, scenario-dependent plans, adjacent outcome/next-step
 geometry, visible desktop chart/mobile baseline context, keyboard disclosures,
 account switching, reset, invalid inputs, negative buffers and reduced motion.
 
-The brand-motion suite checks exact color roles, AA text contrast, lime bar
-boundaries, contextual focus, visible clipped water surfaces, finite playback,
-unchanged progress amounts and reduced motion at desktop and mobile widths.
+The brand-motion suite checks green incoming/blue outgoing series and legends,
+AA text contrast, lime bar boundaries, contextual focus, control-contained ripples,
+visible clipped water surfaces, finite playback and fallback cleanup, unchanged
+progress amounts and reduced motion. It also measures footer alignment and
+responsive stacking from 320px to 1920px.
 It saves real bar/progress interaction frames and contrast measurements beside
 the other temporary QA artifacts. The complete financial and connected-journey
 checks remain required for brand changes.

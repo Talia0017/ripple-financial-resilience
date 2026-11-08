@@ -28,13 +28,16 @@ function flowWater(keys = null, scope = document) {
     if (!surface || host.closest("details:not([open]), [hidden]")) continue;
     const metric = host.closest("[data-metric]")?.dataset.metric;
     if (keys && (metric ? !keys.includes(metric) : !keys.includes("buffer_left"))) continue;
+    let cleanupTimer;
     const finish = event => {
       if (event && (event.target !== surface || event.animationName !== "water-current")) return;
       surface.removeEventListener("animationend", finish);surface.removeEventListener("animationcancel", finish);
+      clearTimeout(cleanupTimer);
       host.classList.remove("is-flowing");flowTargets.delete(host);
     };
     host.classList.add("is-flowing");flowTargets.set(host, finish);
     surface.addEventListener("animationend", finish);surface.addEventListener("animationcancel", finish);
+    cleanupTimer = setTimeout(finish, 1300);
   }
 }
 function clearRippleFeedback() {
@@ -66,14 +69,18 @@ function playRippleFeedback(source, keys, runwayChanged, settled = false) {
   if (keys.length) {const item = $("next-step-message");targets.push([item, "ripple-impact", item, "impact-spread"]);}
   for (const [item, className, listener, animationName] of targets) {
     if (!item) continue;
+    let cleanupTimer;
     const finish = event => {
       if (event && (event.target !== listener || event.animationName !== animationName)) return;
       listener.removeEventListener("animationend", finish);listener.removeEventListener("animationcancel", finish);
+      clearTimeout(cleanupTimer);
       item.classList.remove(className);rippleTargets.delete(item);
       if (listener === wave) wave.remove();
     };
     item.classList.add(className);rippleTargets.set(item, finish);
     listener.addEventListener("animationend", finish);listener.addEventListener("animationcancel", finish);
+    // Animation events are not guaranteed after stylesheet changes or interrupted rendering.
+    cleanupTimer = setTimeout(finish, 750);
   }
   if (keys.length || runwayChanged) flowWater(keys);
 }
@@ -434,8 +441,7 @@ function revealAnchor() {
 window.addEventListener("hashchange", revealAnchor);
 $("footer-data").addEventListener("click", event => {event.preventDefault();revealData();});
 for (const id of ["before-after-details", "full-plan-details"]) $(id).addEventListener("toggle", () => {
-  if ($(id).open) flowWater(null, $(id));
-  else for (const [host, finish] of flowTargets) if (host.closest("details:not([open])")) finish();
+  for (const [host, finish] of flowTargets) if (host.closest("details:not([open])")) finish();
 });
 $("explore-change").addEventListener("click", () => revealWorkspace());
 function syncSecondaryFocus() {for (const region of document.querySelectorAll(".secondary-scroll")) {if (narrowWorkspace.matches) region.removeAttribute("tabindex");else region.tabIndex = 0;}}
