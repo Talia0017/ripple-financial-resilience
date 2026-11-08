@@ -47,7 +47,8 @@ credentials or put tokens into tracked files or command URLs.
 - Dashboard presentation/planning rules live in `public/dashboard.mjs`; charts
   live in `public/charts.mjs`. Keep `public/engine.mjs` and Python formulas intact.
 - For substantial UI changes, use the optional isolated Chrome checks in
-  `tests/browser/dashboard.mjs` and `tests/browser/chart-layout.mjs`; see README
+  `tests/browser/dashboard.mjs`, `tests/browser/chart-layout.mjs` and
+  `tests/browser/connected-workspace.mjs`; see README
   for setup. Check account switching, 6/12-month geometry and mobile overflow.
 - Measure charts after revealing their content, using the visible cash-flow
   panel. Preserve explicit monthly plot heights (260px desktop, 240px mobile)
@@ -55,6 +56,12 @@ credentials or put tokens into tracked files or command URLs.
 - Brand: restrained blue Ripple palette, water drop and open perspective waves.
   Shock feedback lasts 660ms; continuous inputs get one smaller ripple after
   180ms idle. Disable motion for reduced motion and never delay calculations.
+- Keep one connected account workspace: primary historical metrics above a
+  desktop cash-flow/scenario pair, with next-step guidance and expandable full
+  plans directly after the outcome. Narrow screens use a scenario disclosure
+  and compact historical context. Exploration must never infer or select shocks.
+- Next-step copy reuses existing savings and backup results; it must not hide a
+  monthly gap behind a met savings target or retain advice after invalid input.
 - Discovery evidence reuses the official engine and actual recent monthly rows.
   The B/S spending equivalent is descriptive and must not be called runway or
   total savings. Preserve sample sizes, missing-data notes and source attribution.

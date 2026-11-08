@@ -32,6 +32,8 @@
         <div class="section-heading"><h2 id="overview-title">Your Financial Overview</h2><div class="account-context"><span id="selected-account" class="account-badge"></span><p id="account-history" class="muted"></p></div></div>
         <div id="data-warnings" aria-live="polite"></div>
         <div class="metrics" id="metrics"></div>
+        <div class="financial-workspace">
+          <div class="baseline-context">
         <div class="baseline"><span>Baseline Financial Runway</span><strong id="baseline-runway"></strong><span class="sr-only">Historical estimate</span></div>
         <article class="cashflow-panel" aria-labelledby="cashflow-title">
           <div class="chart-heading"><h3 id="cashflow-title">Monthly Cash Flow</h3><div class="segmented" role="group" aria-label="Recorded history window"><button id="history-six" type="button" aria-pressed="true">6 months</button><button id="history-twelve" type="button" aria-pressed="false">12 months</button></div></div>
@@ -39,15 +41,19 @@
           <div id="history-content" hidden><div class="chart-viewport" tabindex="0" aria-label="Monthly cash-flow chart; the twelve-month view scrolls on smaller screens"><div id="monthly-chart"></div></div><p id="monthly-tooltip" class="chart-tooltip" hidden></p><div id="monthly-insights" class="insights"></div></div>
           <button id="retry-history" class="secondary" type="button" hidden>Retry monthly history</button>
         </article>
+            <button id="explore-change" class="text-button explore-change" type="button" aria-controls="scenario-workspace">Explore a Change <span aria-hidden="true">→</span></button>
         <details id="financial-details" class="financial-details"><summary>More Financial Details</summary>
           <dl id="supporting-metrics" class="supporting-metrics"></dl>
           <p id="baseline-explanation"></p><p>Typical figures use all available recorded months. Fixed costs and loan payments are already included in spending.</p>
           <h3>Recorded monthly amounts</h3><p id="history-note"></p><p id="additional-monthly-insight"></p>
           <div class="table-wrap"><table><caption>Recorded cash flows · CAD</caption><thead><tr><th scope="col">Month</th><th scope="col">Money In</th><th scope="col">Money Out</th></tr></thead><tbody id="monthly-table"></tbody></table></div>
         </details>
-      </section>
-      <section class="shock-section" aria-labelledby="shock-title">
-        <div class="section-heading"><h2 id="shock-title">What If Life Changes?</h2><button id="reset-scenario" class="text-button" type="button">Reset Scenario</button></div>
+          </div>
+          <details id="scenario-workspace" class="scenario-workspace" open>
+            <summary><h3 id="shock-title">Explore a Change <span class="panel-toggle" aria-hidden="true">+</span></h3></summary>
+            <div id="scenario-content" class="shock-section">
+              <div class="mobile-baseline" aria-label="Historical baseline account figures"><p>Historical baseline</p><dl id="scenario-baseline"></dl></div>
+              <div class="scenario-toolbar"><span class="muted">Hypothetical scenario</span><button id="reset-scenario" class="text-button" type="button">Reset Scenario</button></div>
         <fieldset class="scenario-selector"><legend class="sr-only">Choose one or combine several hypothetical shocks</legend>
           <label class="shock-option"><input id="job-loss" type="checkbox" aria-controls="job-settings"><span>Job Loss</span></label>
           <label class="shock-option"><input id="higher-bills" type="checkbox" aria-controls="bill-settings"><span>Higher Bills</span></label>
@@ -60,20 +66,32 @@
         </div>
         <p id="scenario-error" class="notice error" role="alert" hidden></p>
         <p id="scenario-invitation" class="scenario-invitation">Choose a financial change to explore its impact.</p>
-        <div id="comparison" class="comparison" aria-labelledby="comparison-title" hidden>
-          <div class="outcome"><div><h3 id="comparison-title">Estimated Financial Runway</h3><strong id="after-runway" class="runway-value"></strong><p class="runway-note">Simplified estimate, not a forecast.</p></div><span id="scenario-state" class="state-badge"></span></div>
-          <div class="legend"><span><i class="key before" aria-hidden="true"></i>Before · Historical baseline</span><span><i class="key after" aria-hidden="true"></i>After · Hypothetical scenario</span></div>
-          <p id="comparison-scale" class="comparison-scale">CAD · Compare bars within each row.</p>
-          <div id="comparison-chart" role="group" aria-label="Before, After and Change" aria-describedby="comparison-scale"></div>
-          <div id="scenario-insight" class="scenario-insight" aria-live="polite" aria-atomic="true"><p id="result-explanation"></p><p id="result-supporting" hidden></p></div>
-          <details id="comparison-details" class="chart-details"><summary>View scenario details</summary><ul id="scenario-contributors"></ul><p id="runway-explanation"></p><p>Each metric's Before/After pair shares a scale; scales differ across rows. Changes use full-precision values. Rounding amounts and changes separately can produce a one-cent difference from subtracting the displayed amounts.</p><div class="table-wrap"><table><caption>Baseline and scenario · amounts in CAD</caption><thead><tr><th scope="col">Metric</th><th scope="col">Before</th><th scope="col">After</th></tr></thead><tbody id="comparison-body"></tbody></table></div></details>
-        </div>
-      </section>
-      <section class="planning-section" aria-labelledby="plan-title">
-        <div class="section-heading"><h2 id="plan-title">Your Financial Plan</h2><span class="muted">Illustrative · Current scenario</span></div>
+              <div id="comparison" class="comparison" aria-labelledby="comparison-title" hidden>
+                <div class="outcome"><div><h3 id="comparison-title">Estimated Financial Runway</h3><strong id="after-runway" class="runway-value"></strong><p class="runway-note">Simplified estimate, not a forecast.</p></div><span id="scenario-state" class="state-badge"></span></div>
+                <div id="scenario-insight" class="scenario-insight" aria-live="polite" aria-atomic="true"><p id="result-explanation"></p></div>
+              </div>
+              <section id="next-step" class="next-step" aria-labelledby="plan-title">
+                <div class="next-step-heading"><h3 id="plan-title">Your Next Step</h3><span id="plan-context" class="muted">Historical baseline · Illustrative</span></div>
+                <div id="next-step-message" aria-live="polite" aria-atomic="true"><p id="next-step-title"></p><p id="next-step-text"></p></div>
+                <details id="full-plan-details"><summary>View Full Plan<span class="sr-only">: Goal Plan and Backup Plan</span></summary>
         <div class="plan-grid">
           <article class="plan-card"><h3>Goal Plan</h3><div id="savings-plan"><p id="goal-summary" class="plan-key"></p><p id="goal-caption" class="muted"></p><progress id="goal-progress" class="goal-progress" max="1" value="0" aria-label="Scenario buffer toward the three-month spending goal"></progress><details id="goal-plan-details"><summary>View Plan<span class="sr-only">: Emergency Savings Goal</span></summary><div id="goal-plan-content"></div></details></div></article>
           <article class="plan-card"><h3>Backup Plan</h3><p id="backup-summary" class="plan-key backup-key"></p><p id="backup-caption" class="muted"></p><details id="backup-plan-details"><summary>View Plan<span class="sr-only">: Backup Plan</span></summary><ol id="backup-plan" class="backup-list"></ol></details></article>
+        </div>
+                </details>
+              </section>
+              <div id="scenario-breakdown" hidden>
+                <p class="comparison-key">Historical baseline → Hypothetical scenario · CAD</p>
+                <dl id="scenario-changes" aria-label="Changes from historical baseline"></dl>
+                <details id="before-after-details" class="chart-details"><summary>View Before/After Details</summary>
+                  <div class="legend"><span><i class="key before" aria-hidden="true"></i>Before · Historical baseline</span><span><i class="key after" aria-hidden="true"></i>After · Hypothetical scenario</span></div>
+                  <p id="comparison-scale" class="comparison-scale">CAD · Compare bars within each row.</p>
+                  <div id="comparison-chart" role="group" aria-label="Before, After and Change" aria-describedby="comparison-scale"></div>
+                  <details id="comparison-details" class="chart-details"><summary>View scenario details</summary><p id="result-supporting" hidden></p><ul id="scenario-contributors"></ul><p id="runway-explanation"></p><p>Each metric's Before/After pair shares a scale; scales differ across rows. Changes use full-precision values. Rounding amounts and changes separately can produce a one-cent difference from subtracting the displayed amounts.</p><div class="table-wrap"><table><caption>Baseline and scenario · amounts in CAD</caption><thead><tr><th scope="col">Metric</th><th scope="col">Before</th><th scope="col">After</th></tr></thead><tbody id="comparison-body"></tbody></table></div></details>
+                </details>
+              </div>
+            </div>
+          </details>
         </div>
       </section>
       <section class="discovery" aria-labelledby="discovery-title"><div><h2 id="discovery-title">What We Discovered</h2><ol class="discovery-takeaways"><li><strong id="discovery-monthly-number"></strong><span id="discovery-monthly-text"></span></li><li><strong id="discovery-buffer-number"></strong><span id="discovery-buffer-text"></span></li><li><strong>One shock, different outcomes.</strong><span id="discovery-shock-text"></span></li></ol><button id="show-research-method" type="button" class="text-button">Research method &amp; limits</button></div><div class="discovery-visual"><h3>Same 55% income replacement</h3><div id="story-chart" class="chart-viewport"></div><a class="discovery-link" href="#shock-title">Explore a shock ↑</a></div></section>

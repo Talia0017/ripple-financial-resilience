@@ -15,6 +15,7 @@ let historyPromise = null, selectedHistory = null;
 let allHistories = null, evidence = null, lastScenario = null;
 let historyUnavailable = false;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const narrowWorkspace = matchMedia("(max-width: 1000px)");
 const rippleTargets = new Map();
 let rippleTimer = null, pendingRipple = null;
 
@@ -24,7 +25,7 @@ function clearRippleFeedback() {
   for (const finish of rippleTargets.values()) finish();
 }
 function playRippleFeedback(source, keys, runwayChanged, settled = false) {
-  if (reducedMotion.matches || !source?.isConnected || !selected) {clearRippleFeedback();return;}
+  if (reducedMotion.matches || !source?.isConnected || source.closest("details:not([open])") || !selected) {clearRippleFeedback();return;}
   clearRippleFeedback();
   const ns = "http://www.w3.org/2000/svg";
   const wave = document.createElementNS(ns, "svg");
@@ -38,11 +39,12 @@ function playRippleFeedback(source, keys, runwayChanged, settled = false) {
   shape("ellipse", {class: "water-ring water-ring-first", cx: 60, cy: 22, rx: 24, ry: 6});
   shape("ellipse", {class: "water-ring water-ring-second", cx: 60, cy: 22, rx: 31, ry: 8});
   source.append(wave);
-  const targets = [[source, "ripple-source", wave, "ripple-scene"], ...keys.map(key => {
-    const item = $("comparison-chart").querySelector(`[data-metric="${key}"]`);
-    return [item, "ripple-impact", item, "impact-spread"];
-  })];
+  const targets = [[source, "ripple-source", wave, "ripple-scene"], ...keys.flatMap(key =>
+    [...document.querySelectorAll(`#scenario-changes [data-metric="${key}"], #comparison-chart [data-metric="${key}"]`)]
+      .filter(item => !item.closest("details:not([open]), [hidden]"))
+      .map(item => [item, "ripple-impact", item, "impact-spread"]))];
   if (runwayChanged) {const item = document.querySelector(".outcome");targets.push([item, "ripple-impact", item, "impact-spread"]);}
+  if (keys.length) {const item = $("next-step-message");targets.push([item, "ripple-impact", item, "impact-spread"]);}
   for (const [item, className, listener, animationName] of targets) {
     if (!item) continue;
     const finish = event => {
@@ -76,6 +78,8 @@ function message(item, text) {item.textContent = text; item.hidden = !text;}
 function clearScenarioOutput() {
   clearRippleFeedback();lastScenario = null;
   $("comparison").hidden = true;
+  $("scenario-breakdown").hidden = true;
+  $("scenario-changes").replaceChildren();
   $("scenario-invitation").hidden = true;
   $("comparison-chart").replaceChildren();
   $("comparison-body").replaceChildren();
@@ -110,6 +114,8 @@ function resetScenario() {
   $("bill-rate").value = "15";
   $("repair-cost").value = String(Math.max(selected?.spending ?? 0, 0));
   $("comparison-details").open = false;
+  $("before-after-details").open = false;
+  $("full-plan-details").open = false;
   updateComparison();
 }
 function numberInput(id, label) {
@@ -130,6 +136,23 @@ function fillTable(id, rows) {
 }
 function renderPlans(after, active) {
   const plan = savingsPlan(selected, after);
+  $("plan-context").textContent = `${active ? "Current scenario" : "Historical baseline"} · Illustrative`;
+  let title, text;
+  if (!after) {title = "Next step unavailable";text = "Resolve missing account values or invalid assumptions to see a relevant plan.";}
+  else if (after.buffer_left <= 0) {
+    title = after.buffer_left < 0 ? `${money(-after.buffer_left)} below zero` : "Restore the estimated buffer";
+    text = "Review available support and adjustable commitments before planning a savings contribution.";
+  } else if (after.monthly_shortfall > 0) {
+    title = `Review a ${money(after.monthly_shortfall)} monthly gap`;
+    text = `Explore lower spending or additional money in.${plan ? plan.remaining === 0 ? " The example savings target is met, but the monthly gap remains." : ` The example savings goal is still ${money(plan.remaining)} away.` : " A meaningful savings target is unavailable."}`;
+  } else if (plan?.remaining === 0) {
+    title = "Example savings target met";
+    text = `The estimated buffer meets the ${money(plan.goal)} three-month spending target. Confirm what cash is actually accessible.`;
+  } else if (plan) {
+    title = `${money(plan.remaining)} to the example savings goal`;
+    text = plan.contribution > 0 ? `Illustration: ${money(plan.contribution)}/month from half the estimated surplus. Review the full plan's assumptions.` : "No positive monthly surplus is available for a modeled contribution. Review cash flow first.";
+  } else {title = "Savings goal unavailable";text = backupPlan(after, active)[0];}
+  $("next-step-title").textContent = title;$("next-step-text").textContent = text;
   const host = $("goal-plan-content");
   host.replaceChildren();
   $("goal-progress").hidden = !plan;
@@ -154,6 +177,20 @@ function renderPlans(after, active) {
     if (after.buffer_left < 0) host.append(element("p", "A negative balance contributes zero toward this goal; the below-zero amount remains a separate issue to address.", "fineprint"));
   }
   $("backup-plan").replaceChildren(...(after ? backupPlan(after, active) : ["Scenario data is unavailable. Resolve missing account values or invalid assumptions before using a backup plan."]).map(text => element("li", text)));
+}
+function renderScenarioChanges(before, after) {
+  for (const row of comparisonMetrics(before, after)) {
+    let group = $("scenario-changes").querySelector(`[data-metric="${row.key}"]`);
+    if (!group) {
+      group = element("div", undefined, "scenario-delta");group.dataset.metric = row.key;
+      group.append(element("dt", row.label), element("dd", undefined, "scenario-pair"), element("dd", undefined, "scenario-difference"));
+      $("scenario-changes").append(group);
+    }
+    group.hidden = !row.changed;
+    group.querySelector(".scenario-pair").textContent = `${money(row.before)} → ${money(row.after)}`;
+    group.querySelector(".scenario-difference").textContent = row.change;
+    group.setAttribute("aria-label", `${row.label}. Historical baseline ${money(row.before)}. Hypothetical scenario ${money(row.after)}. Change ${row.change}.`);
+  }
 }
 function updateComparison(event) {
   if (!selected) return;
@@ -181,6 +218,7 @@ function updateComparison(event) {
     $("scenario-invitation").hidden = true;
     $("scenario-state").textContent = `${count} hypothetical ${count === 1 ? "shock" : "shocks"} selected`;
     renderComparisonChart($("comparison-chart"), before, after);
+    renderScenarioChanges(before, after);
     fillTable("comparison-body", [
       ["Monthly money in", money(before.income), money(after.income)],
       ["Monthly spending · includes loan payments", money(before.spending), money(after.spending)],
@@ -198,6 +236,7 @@ function updateComparison(event) {
     $("scenario-contributors").replaceChildren(...insight.contributors.map(text => element("li", text)));
     message($("scenario-error"), "");
     $("comparison").hidden = false;
+    $("scenario-breakdown").hidden = false;
     renderPlans(after, count > 0);
     const previous = lastScenario ?? before;
     const keys = comparisonMetrics(previous, after).filter(row => row.changed).map(row => row.key);
@@ -296,6 +335,9 @@ function chooseAccount(accountId) {
     }
     return card;
   }));
+  $("scenario-baseline").replaceChildren(...[["Money In", "income"], ["Spending", "spending"], ["Cash Buffer", "buffer"]].map(([label, key]) => {
+    const group = element("div");group.append(element("dt", label), element("dd", money(profile[key])));return group;
+  }));
   $("supporting-metrics").replaceChildren(...[
     ["Typical Fixed Costs", "fixed_costs", "Bills, insurance and loan payments"],
     ["Household Bills", "household_bills", profile.household_bills === 0 ? "Zero recorded does not mean no living expenses" : "Typical recorded monthly bills"],
@@ -314,6 +356,9 @@ function chooseAccount(accountId) {
     $("baseline-explanation").textContent = "Money in, spending and buffer must all be available to calculate runway. Missing values are not replaced with zero.";
   }
   $("higher-bills").disabled = !Number.isFinite(profile.household_bills);
+  $("scenario-workspace").open = !narrowWorkspace.matches;
+  $("financial-details").open = false;
+  for (const id of ["goal-plan-details", "backup-plan-details"]) $(id).open = true;
   resetScenario();loadHistory();
   renderDiscovery();
   $("overview-title").tabIndex = -1;$("overview-title").focus({preventScroll: true});
@@ -369,6 +414,19 @@ async function loadProfiles() {
 $("lookup-form").addEventListener("submit", event => {event.preventDefault();chooseAccount($("account-id").value);});
 $("random-account").addEventListener("click", () => {const ids = [...profiles.keys()];if (ids.length) chooseAccount(ids[Math.floor(Math.random() * ids.length)]);});
 $("reset-scenario").addEventListener("click", resetScenario);
+function revealWorkspace(plan = false) {
+  if (!selected) {$("account-id").focus();return;}
+  $("scenario-workspace").open = true;
+  if (plan) $("full-plan-details").open = true;
+  const target = plan ? $("full-plan-details").querySelector("summary") : document.querySelector('.scenario-selector input:checked, .scenario-selector input:not(:disabled)');
+  target.focus({preventScroll: true});
+  const rect = target.getBoundingClientRect();
+  if (rect.top < 0 || rect.bottom > innerHeight) target.scrollIntoView({block: "nearest", behavior: "instant"});
+}
+$("explore-change").addEventListener("click", () => revealWorkspace());
+for (const link of document.querySelectorAll('a[href="#shock-title"], a[href="#plan-title"]')) link.addEventListener("click", event => {event.preventDefault();revealWorkspace(link.hash === "#plan-title");});
+narrowWorkspace.addEventListener("change", () => {if (selected) $("scenario-workspace").open = !narrowWorkspace.matches;});
+$("scenario-workspace").addEventListener("toggle", () => {if (!$("scenario-workspace").open) clearRippleFeedback();});
 $("retry-load").addEventListener("click", loadProfiles);
 $("retry-history").addEventListener("click", () => {historyPromise = null;loadHistory();});
 for (const id of ["job-loss", "higher-bills", "emergency-repair", "bill-rate", "repair-cost"]) $(id).addEventListener("input", updateComparison);

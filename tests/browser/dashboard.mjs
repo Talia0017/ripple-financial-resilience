@@ -44,6 +44,7 @@ async function choose(page, profile) {
   await page.locator("#lookup-button").click();
   await page.locator("#history-content").waitFor({state: "visible"});
   check(await page.locator("#selected-account").textContent() === `Account ${profile.account_id}`, "Account identification");
+  await page.locator("#explore-change").click();
 }
 async function scrollSettled(page) {
   await page.evaluate(() => new Promise(resolve => {
@@ -76,12 +77,14 @@ try {
   check(await page.locator("#supporting-metrics").isVisible(), "Supporting amounts available on demand");
   await page.keyboard.press("Enter");
   check(await page.locator("#supporting-metrics").isHidden(), "Supporting amounts collapse");
+  await page.locator("#full-plan-details>summary").focus();await page.keyboard.press("Enter");
   for (const id of ["goal-plan-details", "backup-plan-details"]) {
-    check(!await page.locator(`#${id}`).evaluate(item => item.open), "Plan starts summarized");
+    check(await page.locator(`#${id}`).evaluate(item => item.open), "View Full Plan reveals both plans without another opening step");
     await page.locator(`#${id} summary`).focus();await page.keyboard.press("Enter");
-    check(await page.locator(`#${id}`).evaluate(item => item.open), "Keyboard reveals plan");
+    check(!await page.locator(`#${id}`).evaluate(item => item.open), "Keyboard can collapse individual plan details");
     await page.keyboard.press("Enter");
   }
+  await page.locator("#full-plan-details>summary").click();
   check(await page.locator(".explanations details").count() === 1, "One data and calculations disclosure");
   await page.locator("#about-data>summary").focus();await page.keyboard.press("Enter");
   check(await page.locator("#dataset-detail").isVisible(), "Source information available by keyboard");
@@ -116,7 +119,9 @@ try {
       const rendered = await item.locator("dd").evaluateAll(items => items.map(item => Number(item.dataset.value)));
       check(JSON.stringify(rendered) === JSON.stringify([row.before, row.after, row.delta]), `Exact before/after/delta for ${row.key}, combination ${mask}`);
       check((await item.getAttribute("class")).includes(row.changed ? "is-changed" : "is-unchanged"), "Emphasis follows numeric changes");
-      check((await item.locator(".comparison-change").textContent()).includes(row.change), "Directly visible signed difference");
+      check((await item.locator(".comparison-change").textContent()).includes(row.change), "Detailed comparison retains its signed difference");
+      const compact = page.locator(`#scenario-changes [data-metric="${row.key}"]`);
+      check(await compact.isVisible() === row.changed && (await compact.textContent()).includes(row.change), "Compact comparison reveals exact affected metrics and signed differences");
     }
   }
   await page.locator("#ei-rate").fill("80");await page.locator("#bill-rate").fill("50");await page.locator("#repair-cost").fill("1234");
@@ -138,6 +143,7 @@ try {
   check(await page.locator("#ei-rate-number").inputValue() === "66", "Replacement slider supports keyboard changes");
   check(Math.abs(await page.evaluate(() => scrollY) - scrollPosition) < 1, "Changing a parameter does not auto-scroll");
   await page.locator("#ei-rate").fill("80");
+  await page.locator("#before-after-details>summary").click();
   await page.locator('.comparison-metric[data-metric="income"]').focus();
   check((await page.locator('.comparison-metric[data-metric="income"]').getAttribute("aria-label")).includes("historical baseline"), "Keyboard exposes comparison values without a tooltip");
   check(await page.locator("#comparison-tooltip").count() === 0, "No hidden stale comparison tooltip");
@@ -163,7 +169,8 @@ try {
   check(await page.locator("#job-settings").isHidden() && await page.locator("#bill-settings").isHidden() && await page.locator("#repair-settings").isHidden(), "Reset hides all parameters");
   await page.locator("#job-loss").check();
   check(await page.locator("#job-settings").isVisible() && await page.locator("#bill-settings").isHidden() && await page.locator("#repair-settings").isHidden(), "Only selected shock exposes parameters");
-  await page.locator("#goal-plan-details summary").click();
+  await page.locator("#full-plan-details>summary").click();
+  if (!await page.locator("#goal-plan-details").evaluate(item => item.open)) await page.locator("#goal-plan-details summary").click();
   await page.locator("#ei-rate").fill("100");
   check(await page.locator("#goal-plan-details").evaluate(item => item.open), "Live plan updates preserve expanded state");
   await page.locator("#goal-plan-details summary").click();
@@ -190,6 +197,8 @@ try {
   await page.locator("#job-loss").check();
   for (const width of [320, 375, 768, 1440]) {
     await page.setViewportSize({width, height: 1000});
+    await page.locator("#explore-change").click();
+    if (!await page.locator("#before-after-details").evaluate(item => item.open)) await page.locator("#before-after-details>summary").click();
     check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `No page overflow at ${width}px`);
     check(await page.locator("#comparison-chart").evaluate(item => item.scrollWidth <= item.clientWidth), `Monetary comparison needs no horizontal scrolling at ${width}px`);
   }
@@ -237,6 +246,7 @@ try {
     await missing.page.locator("#job-loss").check();
     check(await missing.page.locator("#scenario-error").isVisible() && await missing.page.locator(".comparison-metric").count() === 0, "Missing critical value cannot produce a fake comparison");
     check(await missing.page.locator("#goal-summary").textContent() === "Not available", "Missing values do not leave a stale plan");
+    check(await missing.page.locator("#next-step-title").textContent() === "Next step unavailable", "Missing critical account values cannot produce next-step advice");
   }
   await choose(missing.page, all[3]);
   check(await missing.page.locator("#higher-bills").isDisabled(), "Only the missing-bills shock is disabled");
@@ -263,7 +273,9 @@ try {
   await motion.page.locator("#ei-rate-number").fill("80");
   check(savedNode && await motion.page.locator('.comparison-metric[data-metric="income"]').getAttribute("data-focus-probe") === "retained", "Comparison rows remain stable during updates");
   await motion.page.emulateMedia({reducedMotion: "reduce"});
+  await motion.page.waitForFunction(() => matchMedia("(prefers-reduced-motion: reduce)").matches && !document.querySelector(".shock-wave, .ripple-impact"));
   await motion.page.locator("#ei-rate-number").fill("65");
+  await motion.page.waitForFunction(() => document.getAnimations().every(item => !["drop-ring", "impact-spread", "loading-ring"].includes(item.animationName)));
   check(await motion.page.evaluate(() => document.getAnimations().filter(item => ["drop-ring", "impact-spread", "loading-ring"].includes(item.animationName)).length === 0), "Reduced motion disables all ripple and loading animations");
   check(await motion.page.locator("#after-runway").textContent() === runwayHeading(simulate(profile, {job_loss: true, ei_rate: .65})), "Reduced motion preserves immediate scenario calculations");
   check(await motion.page.locator(".ripple-source, .ripple-impact").count() === 0, "Changing motion preference cleans up active feedback");

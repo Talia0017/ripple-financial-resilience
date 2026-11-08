@@ -23,8 +23,8 @@ async function settle(page) {await page.locator("#history-content").waitFor();aw
 async function measure(page) {
   return page.evaluate(() => {
     const svg = document.querySelector("#monthly-chart svg"), box = svg.getBoundingClientRect(), matrix = svg.querySelector("text").getScreenCTM();
-    const overview = document.getElementById("overview").getBoundingClientRect(), insight = document.getElementById("monthly-insights").getBoundingClientRect();
-    return {id: document.getElementById("account-id").value, width: box.width, height: box.height, viewWidth: svg.viewBox.baseVal.width, scaleX: matrix.a, scaleY: matrix.d, overviewHeight: overview.height, essentialHeight: insight.bottom-overview.top, pageOverflow: document.documentElement.scrollWidth > innerWidth};
+    const overview = document.getElementById("overview").getBoundingClientRect(), insight = document.getElementById("monthly-insights").getBoundingClientRect(), baseline = document.querySelector(".baseline-context").getBoundingClientRect(), scenario = document.getElementById("scenario-workspace").getBoundingClientRect();
+    return {id: document.getElementById("account-id").value, width: box.width, height: box.height, viewWidth: svg.viewBox.baseVal.width, scaleX: matrix.a, scaleY: matrix.d, overviewHeight: overview.height, baselineHeight: baseline.height, essentialHeight: insight.bottom-baseline.top, columnsSeparated: baseline.right <= scenario.left, pageOverflow: document.documentElement.scrollWidth > innerWidth};
   });
 }
 async function validate(page, width, height, window) {
@@ -40,7 +40,7 @@ async function validate(page, width, height, window) {
   check(label.includes(money(rows[0][1])) && label.includes(money(rows[0][2])), "Chart contains the selected account's actual cash flows");
   check(await page.locator("#monthly-insights p").textContent() === monthlyDiscovery(profile, rows), "No stale account annotation");
   check(await page.locator('#monthly-chart [data-shortfall="true"]').count() === rows.filter(row => row[1] !== null && row[2] !== null && row[2] > row[1]).length, "No stale shortfall highlights");
-  if (width >= 1300) check(item.essentialHeight <= height && item.overviewHeight <= height + 12, "Overview's essential content fits approximately one desktop viewport");
+  if (width >= 1300) check(item.essentialHeight <= height && item.baselineHeight <= height && item.columnsSeparated, "Readable baseline context fits beside the scenario workspace without a fixed page height");
   measurements.push({viewport: `${width}x${height}`, window, recordedMonths: profile.months, ...item});
   return item;
 }

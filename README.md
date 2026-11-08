@@ -196,27 +196,44 @@ personalized advice or additions to the official judging calculations.
 
 ## Planning and storytelling methodology
 
-The overview is the primary experience, followed by hypothetical scenarios and
-supporting plans. Expandable details retain all official formulas. Historical
-records and hypothetical results are labelled separately throughout.
+The overview is the primary experience in one connected account workspace:
+**See → Discover → Explore → Prepare**. Three historical summary metrics lead.
+Below them, desktop screens place recorded cash flow and its account-specific
+insight beside scenario controls, runway and the next step. The chart column
+stays visible while reviewing scenario results; expanding historical details
+returns it to normal document flow. The layout uses natural content height.
+Historical records and hypothetical results remain explicitly distinct.
+
+**Explore a Change** opens the scenario panel and focuses a working control.
+It never interprets historical patterns as a specific event or selects a shock.
+The action only scrolls enough to reveal an off-screen target. On screens up to
+1000px, the scenario panel starts collapsed; a compact, sticky historical
+baseline inside the open panel preserves the original amounts during exploration.
+All navigation actions reveal their target disclosure and support keyboard use.
 
 The simplified interface uses large primary amounts, one monthly chart insight
 and compact shock selectors. Metric definitions use keyboard-accessible info
 disclosures. **More Financial Details** holds supporting amounts, baseline
 context and the monthly table. Parameters appear only for selected shocks.
-Estimated runway leads the scenario results, with a concise change summary and
-an optional Before/After table. Goal and backup plans show a short numerical
-summary; **View Plan** reveals the full figures and steps. A single **About the
+Estimated runway and one explanation lead directly to **Your Next Step**. This
+summary uses the existing planning results: restore a depleted buffer, review
+a monthly gap, build toward the example savings goal, or recognize a met target.
+A met savings target does not hide an ongoing monthly gap. Invalid inputs show
+an unavailable state instead of outdated guidance. **View Full Plan** reveals
+Goal Plan and Backup Plan in the same workspace; their individual disclosures
+retain the full figures and steps. The summary and full plan update together.
+A single **About the
 Data & Calculations** disclosure collects source information, formulas,
 assumptions, limitations and the verified research method. No financial or
 planning rules changed in this visual refinement. Five-second comprehension is
 a design goal; automated layout checks are not a usability study.
 
-Feature 2 uses a **Before → After → Change** comparison for money in, spending,
-remaining buffer and monthly shortfall. Each metric's pair shares a scale;
-scales differ between metrics, as the visible label explains. Signed deltas
-are always visible, changed rows are emphasized, and zero/negative values use
-a real zero origin. This comparison reflows on mobile without horizontal
+Affected metrics show a compact **Historical baseline → Hypothetical scenario**
+comparison with explicit signed differences. **View Before/After Details**
+reveals all four money-in, spending, buffer and shortfall comparisons, bars and
+the detailed table. Each metric's pair shares a scale; scales differ between
+metrics, as the visible label explains. Zero/negative values use a real zero
+origin. This comparison reflows on mobile without horizontal
 scrolling. It does not plot the no-shortfall judging label as a duration.
 Changes use the original full-precision amounts. Display values and deltas are
 rounded independently; this can produce a one-cent difference from subtracting
@@ -225,14 +242,15 @@ the displayed amounts, as the comparison and its detail disclosure explain.
 With no selected shocks, a compact invitation replaces the identical-value
 chart; financial plans still use the baseline. Selected parameters appear on
 demand, and income-replacement slider and numeric entry stay synchronized.
-One primary insight and at most one supporting sentence explain the selected
-assumptions and actual monetary effects; combined contributions and full
+One primary insight explains the selected assumptions and actual monetary
+effects; its supporting explanation, combined contributions and full
 numbers remain available under **View scenario details**. Zero recorded bills
 are described as a modeling limitation, not evidence of no living expenses.
 Reset, account switching and invalid input clear obsolete results. Comparison
 values are visible directly and keyboard accessible, with no hidden tooltip
 state. Updating an assumption does not auto-scroll. Optional, short ripple
-feedback links a changed control with the metrics it affects.
+feedback links a changed control with affected metrics, runway and the next
+step. Calculations and plan updates are synchronous; motion is optional.
 
 ## Blue Ripple identity and connected discoveries
 
@@ -270,7 +288,7 @@ observations and unavailable scenarios remain explicit in the method disclosure.
 
 Selecting or clearing a shock triggers a falling drop and two expanding blue
 ellipses beside that control. Changed comparison rows and, when changed, the
-runway outcome receive staggered emphasis. A discrete interaction lasts
+runway outcome and next-step message receive staggered emphasis. A discrete interaction lasts
 **660 ms**. Calculations and annotations update immediately. Continuous slider
 or numeric input gets one smaller ripple after **180 ms** without input,
 rather than repeated large effects during a drag. Stable rows preserve keyboard
@@ -290,8 +308,9 @@ data, highlights and tooltips are cleared before loading another account.
 Twelve-month charts scroll horizontally on narrow screens without widening
 the page. Compact header, lookup and card spacing keep the primary overview
 together; secondary details remain expandable and text stays readable. In
-1440px browser checks the overview decreased from about 952px to 731px, without
-a fixed section height or clipped content.
+the connected layout, original metrics stay above both columns and detailed
+plans no longer occupy a separate section below the simulator. No fixed section
+height or clipped content is used.
 
 The emergency goal is **3 × typical baseline spending**. Buffer progress uses
 the non-negative remaining scenario buffer, capped visually at the goal. A
@@ -370,6 +389,7 @@ local preview above, install Playwright in a temporary directory, then run:
 # Set this to the absolute file URL of your separate Playwright installation.
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/dashboard.mjs
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/chart-layout.mjs
+RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/connected-workspace.mjs
 ```
 
 For example, `npm install --prefix /tmp/ripple-browser-qa --no-save --ignore-scripts playwright`
@@ -390,6 +410,12 @@ annotations and highlights with actual account rows, and captures first/later
 selections. It also captures visible impact/spread/finished animation frames,
 checks settled-input feedback, reset and reduced motion. Screenshots and
 measurement reports go to the temporary directory, not the public site.
+
+The connected-workspace suite exercises the complete account → insight → shock
+→ next-step → full-plan journey at 1440, 1366, 768, 375 and 320px. It verifies
+unchanged baseline amounts, scenario-dependent plans, adjacent outcome/next-step
+geometry, visible desktop chart/mobile baseline context, keyboard disclosures,
+account switching, reset, invalid inputs, negative buffers and reduced motion.
 
 `verify_web_profiles.py` additionally checks all 54,000 shipped monthly records
 against the original CSV data. All financial profiles and 54,000 shock results

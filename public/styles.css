@@ -397,3 +397,86 @@ h1 { margin-bottom: 4px; }
   .shock-wave { display: none; }
   .shock-wave, .water-drop, .water-ring, .ripple-impact { animation: none !important; }
 }
+
+/* One account workspace: recorded cash flow stays beside hypothetical exploration. */
+.financial-workspace { display: grid; grid-template-columns: minmax(0,1.08fr) minmax(0,1fr); align-items: start; gap: 28px; margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; }
+.baseline-context { min-width: 0; position: sticky; top: 16px; }
+.baseline-context:has(.financial-details[open]) { position: static; }
+.baseline-context .baseline { margin-top: 0; padding-top: 0; border: 0; gap: 4px 12px; }
+.baseline-context .baseline strong { font-size: 18px; }
+.baseline-context .chart-heading { flex-wrap: wrap; gap: 8px; }
+.baseline-context .chart-heading h3 { font-size: 22px; }
+.baseline-context .chart-meta { display: block; }
+.baseline-context .chart-meta .legend { gap: 8px 16px; }
+.baseline-context .chart-meta p { margin: 4px 0; }
+.baseline-context .insights { display: block; }
+.baseline-context .insight-label { display: block; margin-bottom: 3px; }
+.baseline-context .insights p { font-size: 16px; }
+.explore-change { margin: 0 0 8px; }
+.scenario-workspace { min-width: 0; margin: 0; padding: 0 0 0 24px; border-left: 1px solid var(--line); color: #173158; }
+.scenario-workspace>summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; list-style: none; padding: 0 0 8px; }
+.scenario-workspace>summary::-webkit-details-marker { display: none; }
+.scenario-workspace>summary h3 { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin: 0; font-size: 22px; color: #173158; }
+.panel-toggle { font-size: 24px; font-weight: 400; }
+.scenario-workspace[open] .panel-toggle { transform: rotate(45deg); }
+.scenario-workspace[open]>summary { margin-bottom: 4px; }
+.mobile-baseline { display: none; }
+.scenario-workspace .shock-section { margin-top: 0; }
+.scenario-toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 10px; }
+.scenario-toolbar .text-button { padding: 6px 0; }
+.scenario-selector { gap: 8px; }
+.scenario-workspace .shock-option { padding: 8px 10px; gap: 8px; }
+.scenario-workspace .scenario-parameters { gap: 12px; }
+.scenario-workspace .shock-assumption { padding-top: 16px; max-width: none; flex-basis: 180px; }
+.scenario-workspace .comparison { margin-top: 16px; }
+.scenario-workspace .outcome { display: block; padding: 14px 16px; border-radius: 8px; }
+.scenario-workspace .runway-value { font-size: 32px; }
+.scenario-workspace .state-badge { display: block; font-size: 14px; margin-top: 6px; }
+.scenario-workspace .runway-note { font-size: 14px; margin-top: 4px; }
+.scenario-workspace #scenario-insight { padding-left: 12px; margin: 12px 0 16px; font-size: 16px; line-height: 1.55; }
+.scenario-workspace #result-explanation { font-weight: 500; margin: 0; }
+.scenario-workspace .scenario-invitation { margin: 4px 0 12px; padding: 4px 0; }
+.next-step { border-top: 1px solid var(--line); padding-top: 14px; }
+.next-step-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; }
+.next-step-heading h3 { font-size: 18px; margin: 0; }
+#plan-context { font-size: 14px; }
+#next-step-message { border-radius: 5px; }
+#next-step-title { font-weight: 600; color: var(--blue-deep); margin: 0 0 4px; }
+#next-step-text { color: var(--muted); margin: 0; }
+#full-plan-details { padding: 0; }
+#full-plan-details[open]>summary { margin-bottom: 8px; }
+.scenario-workspace .plan-grid { grid-template-columns: 1fr; }
+.scenario-workspace .plan-card { padding: 16px 0; }
+.scenario-workspace .plan-card+.plan-card { border-left: 0; border-top: 1px solid var(--line); }
+.scenario-workspace .plan-key { font-size: 28px; }
+.scenario-workspace .plan-card h3 { margin-bottom: 10px; }
+.comparison-key { margin: 12px 0 4px; color: var(--muted); font-size: 14px; }
+#scenario-changes { margin: 0; }
+.scenario-delta { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 3px 12px; padding: 10px 0 10px 10px; border-left: 2px solid #8bb0e8; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.scenario-delta dt { font-weight: 550; }
+.scenario-delta dd { margin: 0; }
+.scenario-pair { grid-column: 1/-1; color: var(--muted); }
+.scenario-difference { grid-column: 2; grid-row: 1; color: var(--brand); font-weight: 600; }
+.scenario-workspace .comparison-metric { grid-template-columns: 1fr; gap: 8px; padding: 12px 0 12px 10px; }
+.scenario-workspace .comparison-values { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px 16px; }
+.scenario-workspace .comparison-values dd { font-size: 20px; }
+.scenario-workspace .comparison-change { grid-column: 1/-1; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; }
+.scenario-workspace .comparison-change dd { display: flex; flex-wrap: wrap; gap: 8px; }
+.baseline-context .supporting-metrics { grid-template-columns: 1fr; }
+@media(prefers-reduced-motion:no-preference) {
+  .scenario-delta.ripple-impact { animation-delay: 130ms; }
+  #next-step-message.ripple-impact { animation-delay: 180ms; }
+}
+@media(max-width:1000px) {
+  .financial-workspace { grid-template-columns: 1fr; gap: 16px; }
+  .baseline-context { position: static; }
+  .scenario-workspace { padding: 14px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+  .scenario-workspace>summary { padding-bottom: 0; }
+  .scenario-workspace[open]>summary { margin-bottom: 8px; }
+  .mobile-baseline { display: block; position: sticky; top: 0; z-index: 3; background: #fff; padding: 8px 0; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .mobile-baseline p { font-size: 14px; margin: 0 0 4px; color: var(--muted); }
+  #scenario-baseline { margin: 0; }
+  #scenario-baseline>div { display: flex; justify-content: space-between; gap: 12px; }
+  #scenario-baseline dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 550; }
+  .scenario-workspace input, .scenario-workspace summary, .scenario-workspace button { scroll-margin-top: 132px; }
+}
