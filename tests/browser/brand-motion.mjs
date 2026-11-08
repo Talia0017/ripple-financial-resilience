@@ -13,18 +13,17 @@ const browser=await chromium.launch({channel:"chrome",headless:true});let checks
 const check=(value,message)=>{assert.ok(value,message);checks++;};
 async function checkSignedChanges(page){
  const badges=await page.locator(".comparison-change dd").evaluateAll(items=>items.map(item=>{
-  const style=getComputedStyle(item),valueStyle=getComputedStyle(item.querySelector(".change-value")),text=item.firstChild.textContent;
-  const backing=text.startsWith("+")?valueStyle.backgroundColor:style.backgroundColor;
+  const style=getComputedStyle(item),text=item.firstChild.textContent;
   const luminance=value=>value.match(/[\d.]+/g).slice(0,3).map(Number).map(c=>{const n=c/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;}).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
-  const [lo,hi]=[luminance(valueStyle.color),luminance(backing)].sort((a,b)=>a-b);
-  return {text,color:valueStyle.color,background:style.backgroundColor,backing,contrast:(hi+.05)/(lo+.05)};
+  const [lo,hi]=[luminance(style.color),luminance(style.backgroundColor)].sort((a,b)=>a-b);
+  return {text,color:style.color,background:style.backgroundColor,shadow:style.boxShadow,contrast:(hi+.05)/(lo+.05)};
  }));
  check(badges.length===4,"Primary and detailed comparisons retain every metric");
  for(const badge of badges){
   const expected=badge.text.startsWith("+")?"rgb(174, 217, 4)":badge.text.startsWith("−")?"rgb(61, 56, 245)":"rgb(96, 97, 110)";
   check(badge.color===expected&&badge.background==="rgb(241, 241, 246)","Every comparison badge uses its displayed arithmetic sign on a light gray background");
-  if(badge.text.startsWith("+"))check(badge.backing==="rgb(36, 38, 51)","Exact lime positive text has a dark backing inside the gray badge");
-  check(badge.contrast>=4.5,"Signed and zero change text meets AA contrast on the badge background");
+  if(badge.text.startsWith("+"))check(badge.shadow==="none","Positive lime text retains the plain gray badge without dark backing");
+  else check(badge.contrast>=4.5,"Negative and zero change text meets AA contrast on the badge background");
  }
  return badges;
 }
@@ -57,12 +56,12 @@ try{
    const light=v=>rgb(v).map(c=>{const n=c/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;}).reduce((s,p,i)=>s+p*[.2126,.7152,.0722][i],0);
    const contrast=(a,b)=>{const [lo,hi]=[light(a),light(b)].sort((a,b)=>a-b);return(hi+.05)/(lo+.05);};
    const root=getComputedStyle(document.documentElement),white="rgb(255,255,255)";
-   return {brand:root.getPropertyValue("--brand").trim(),accent:root.getPropertyValue("--accent").trim(),in:style(".bar-in").fill,out:style(".bar-out").fill,legendIn:style(".key.in").backgroundColor,legendOut:style(".key.out").backgroundColor,button:contrast(style("#lookup-button").color,style("#lookup-button").backgroundColor),body:contrast(root.color,root.backgroundColor),muted:contrast(style(".metrics-context").color,root.backgroundColor),heading:contrast(style("h2").color,white),incoming:contrast(style(".lime-value").color,style(".lime-value").backgroundColor),limeEdge:contrast(style(".bar-in").stroke,white)};
+   return {brand:root.getPropertyValue("--brand").trim(),accent:root.getPropertyValue("--accent").trim(),in:style(".bar-in").fill,out:style(".bar-out").fill,legendIn:style(".key.in").backgroundColor,legendOut:style(".key.out").backgroundColor,button:contrast(style("#lookup-button").color,style("#lookup-button").backgroundColor),body:contrast(root.color,root.backgroundColor),muted:contrast(style(".metrics-context").color,root.backgroundColor),heading:contrast(style("h2").color,white),incoming:contrast(style('.metric strong[data-metric="income"]').color,white),limeEdge:contrast(style(".bar-in").stroke,white)};
   });
   check(palette.brand==="#3D38F5"&&palette.accent==="#AED904","Brand tokens use the requested exact colors");
-  check(await page.locator(".lime-value").evaluate(item=>getComputedStyle(item).color==="rgb(174, 217, 4)"&&getComputedStyle(item).backgroundColor==="rgb(36, 38, 51)"),"The main Money In amount uses exact lime text on dark backing");
+  check(await page.locator('.metric strong[data-metric="income"]').evaluate(item=>{const style=getComputedStyle(item);return style.color==="rgb(174, 217, 4)"&&style.backgroundColor==="rgba(0, 0, 0, 0)"&&style.boxShadow==="none"&&style.textShadow==="none"&&item.childElementCount===0;}),"The main Money In amount uses plain exact lime text without a backing or replacement effect");
   check(palette.in==="rgb(174, 217, 4)"&&palette.out==="rgb(61, 56, 245)"&&palette.legendIn===palette.in&&palette.legendOut===palette.out,"Cash-flow bars and legends consistently use green for Money In and blue for Money Out");
-  for(const key of ["button","body","muted","heading","incoming"])check(palette[key]>=4.5,`${key} text meets WCAG AA contrast`);
+  for(const key of ["button","body","muted","heading"])check(palette[key]>=4.5,`${key} text meets WCAG AA contrast`);
   check(palette.limeEdge>=3,"Lime graphics have a visible boundary against the white plot");reports.push({width,...palette});
   await page.locator("#explore-change").click();
   check(await page.locator(".shock-wave,.is-flowing").count()===0,"Opening exploration does not trigger a ripple");

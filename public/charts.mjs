@@ -118,8 +118,7 @@ export function renderComparisonChart(container, before, after, visibility = "al
       group.append(svg);content.append(group);
     }
     const change = html("div", undefined, "comparison-change");
-    const delta = html("dd");delta.dataset.value = String(row.delta);
-    delta.append(html("span", row.change, "change-value"));
+    const delta = html("dd", row.change);delta.dataset.value = String(row.delta);
     delta.dataset.sign = row.delta > 0 ? "positive" : row.delta < 0 ? "negative" : "zero";
     delta.append(html("span", row.direction, "change-direction"));
     change.append(html("dt", "Change"), delta);content.append(change);

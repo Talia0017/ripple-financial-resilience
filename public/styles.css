@@ -10,7 +10,6 @@
   --accent: #AED904;
   --accent-edge: #647d02;
   --positive: var(--accent);
-  --lime-backing: var(--ink);
   --badge-background: #f1f1f6;
   --brand: #3D38F5;
   --muted: #60616e;
@@ -506,8 +505,6 @@ footer { width: calc(100% - 48px); max-width: 1440px; margin: 24px auto 0; displ
 .scenario-workspace .is-changed .comparison-change dd { color: var(--ink); box-shadow: none; }
 .scenario-workspace .comparison-change dd[data-sign=positive] { color: var(--positive); }
 .scenario-workspace .comparison-change dd[data-sign=negative] { color: var(--brand); }
-/* Dark backing preserves the exact lime hue and contrast without changing text geometry. */
-.lime-value, .scenario-workspace .comparison-change dd[data-sign=positive] .change-value { background: var(--lime-backing); border-radius: 3px; box-shadow: 0 0 0 2px var(--lime-backing); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .scenario-workspace #scenario-insight { margin: 10px 0 12px; }
 .next-step { padding-top: 10px; }
 .next-step-heading { margin-bottom: 4px; }

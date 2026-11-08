@@ -279,11 +279,11 @@ The interface uses **#3D38F5** for the brand, primary buttons,
 major headings and Money Out. **#AED904** identifies Money In and small
 After-state accents. Cash-flow legends match their corresponding bars.
 The main Money In value and **+** change text use the exact same **#AED904**
-as incoming chart bars. Shared CSS variables define lime, positive text, dark
-backing and light gray badge surfaces. Tight dark backing behind lime text
-provides readable contrast while preserving its hue and text geometry. Badges
-retain their light gray outer background; **−** values use brand blue and zero
-remains neutral, including in the detailed comparison.
+as incoming chart bars. Shared CSS variables define lime, positive text and light
+gray badge surfaces. Lime text appears directly on these surfaces with no dark backing,
+outline or replacement treatment. Exact lime text on the existing light surfaces
+does not meet AA text contrast. **−** values use brand blue and zero remains
+neutral, including in the detailed comparison.
 These colors indicate the arithmetic sign, not whether a change is beneficial;
 for example, a spending increase still carries a green plus sign.
 Neutral surfaces, dark body text and gray dividers keep the layout restrained.
@@ -471,7 +471,8 @@ AA text contrast, lime bar boundaries, contextual focus and animation-free
 scenario interactions. It verifies immediate slider/number synchronization,
 static native savings progress, signed badge colors, zero and sub-cent changes
 across primary and detailed comparisons, and exact lime Money In metric text
-with accessible dark backing.
+without dark backing. Contrast checks cover body text, controls and non-positive
+badges; the requested lime text on light surfaces is excluded from AA claims.
 It also measures footer alignment and responsive stacking from 320px to 1920px,
 and saves screenshots and contrast measurements as temporary QA artifacts.
 The financial and connected-journey checks remain required for brand changes.

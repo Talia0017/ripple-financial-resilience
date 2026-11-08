@@ -59,10 +59,12 @@ credentials or put tokens into tracked files or command URLs.
 - Brand: #3D38F5 for identity and Money Out; #AED904 for Money In and small
   After-state or positive accents. Match cash-flow legends to the series.
   Use exact lime #AED904 for the main Money In value and all positive changes.
-  Share the accent variable and use tight dark backing for lime text to maintain
-  readable contrast without changing layout. Change badges retain light gray
-  outer surfaces; negative amounts use blue, and
-  zero stays neutral. These colors indicate arithmetic sign, not financial benefit.
+  Share the accent variable. The owner explicitly requested no dark text backing,
+  outlines or replacement treatment. Keep the existing neutral surfaces and
+  light gray change badges; negative amounts use blue, and
+  zero stays neutral. Exact lime text on these light surfaces does not meet AA
+  text contrast; do not claim that it does. These colors indicate arithmetic
+  sign, not financial benefit.
   Use neutral surfaces, dark body text and dark
   outlines on lime chart bars. After-state green does not guarantee a favorable outcome.
   The SVG mark uses a drop and three open perspective waves.
