@@ -73,7 +73,7 @@ try {
   const context = await browser.newContext({viewport:{width:1440,height:900}, reducedMotion:"no-preference"});
   const page = await context.newPage();page.on("pageerror", error => errors.push(error.message));
   await ready(page);await page.locator("#account-id").fill("39859");await page.locator("#lookup-button").click();await settle(page);
-  check(await page.locator(".ripple-mark path.brand-drop").count()===1 && await page.locator(".ripple-mark path.brand-wave").count()===2 && await page.locator(".ripple-mark circle").count()===0, "Logo uses a drop and two open perspective waves, not a closed bullseye");
+  check(await page.locator(".ripple-mark path.brand-drop").count()===1 && await page.locator(".ripple-mark path.brand-wave").count()===3 && await page.locator(".ripple-mark circle").count()===0, "Logo uses a drop and three open perspective waves, not a closed bullseye");
   await page.locator(".shock-section").evaluate(item => item.scrollIntoView({block:"start",behavior:"instant"}));
   await page.locator("#job-loss").check();
   check(await page.locator(".shock-wave .water-ring").count()===2, "Actual shock activation attaches two real wave rings");

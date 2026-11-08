@@ -1,6 +1,6 @@
 import {decodeProfiles, simulate} from "./engine.mjs";
 import {money, monthName, decodeHistory, monthlyInsights, monthlyDiscovery, bufferEquivalent, discoveryEvidence, runwayHeading, runwayExplanation, scenarioInsight, comparisonMetrics, savingsPlan, backupPlan} from "./dashboard.mjs";
-import {renderMonthlyChart, renderComparisonChart, renderStoryChart} from "./charts.mjs";
+import {renderMonthlyChart, renderComparisonChart, renderStoryChart, renderProgressFlow} from "./charts.mjs";
 
 const $ = id => document.getElementById(id);
 const element = (tag, text, className) => {
@@ -17,12 +17,32 @@ let historyUnavailable = false;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const narrowWorkspace = matchMedia("(max-width: 1000px)");
 const rippleTargets = new Map();
+const flowTargets = new Map();
 let rippleTimer = null, pendingRipple = null;
 
+function clearWaterFlow() {for (const finish of flowTargets.values()) finish();}
+function flowWater(keys = null) {
+  clearWaterFlow();
+  if (reducedMotion.matches) return;
+  for (const host of document.querySelectorAll(".comparison-after .pair-bar, #goal-water svg")) {
+    const surface = host.querySelector(".water-sheen");
+    if (!surface || host.closest("details:not([open]), [hidden]")) continue;
+    const metric = host.closest("[data-metric]")?.dataset.metric;
+    if (keys && (metric ? !keys.includes(metric) : !keys.includes("buffer_left"))) continue;
+    const finish = event => {
+      if (event && (event.target !== surface || event.animationName !== "water-current")) return;
+      surface.removeEventListener("animationend", finish);surface.removeEventListener("animationcancel", finish);
+      host.classList.remove("is-flowing");flowTargets.delete(host);
+    };
+    host.classList.add("is-flowing");flowTargets.set(host, finish);
+    surface.addEventListener("animationend", finish);surface.addEventListener("animationcancel", finish);
+  }
+}
 function clearRippleFeedback() {
   if (rippleTimer !== null) clearTimeout(rippleTimer);
   rippleTimer = null;pendingRipple = null;
   for (const finish of rippleTargets.values()) finish();
+  clearWaterFlow();
 }
 function playRippleFeedback(source, keys, runwayChanged, settled = false) {
   if (reducedMotion.matches || !source?.isConnected || source.closest("details:not([open])") || !selected) {clearRippleFeedback();return;}
@@ -56,6 +76,7 @@ function playRippleFeedback(source, keys, runwayChanged, settled = false) {
     item.classList.add(className);rippleTargets.set(item, finish);
     listener.addEventListener("animationend", finish);listener.addEventListener("animationcancel", finish);
   }
+  if (keys.length || runwayChanged) flowWater(keys);
 }
 function rippleFeedback(event, keys, runwayChanged) {
   if (reducedMotion.matches) {clearRippleFeedback();return;}
@@ -156,6 +177,8 @@ function renderPlans(after, active) {
   const host = $("goal-plan-content");
   host.replaceChildren();
   $("goal-progress").hidden = !plan;
+  $("goal-progress").parentElement.hidden = !plan;
+  if (plan) renderProgressFlow($("goal-water"), plan.progress);else $("goal-water").replaceChildren();
   $("goal-summary").textContent = !plan ? "Not available" : plan.remaining === 0 ? "Target met" : money(plan.remaining);
   $("goal-caption").textContent = !plan ? "Valid spending and scenario data needed." : plan.remaining === 0 ? `${money(plan.goal)} three-month spending target.` : `remaining toward a ${money(plan.goal)} three-month spending target.`;
   if (plan) {$("goal-progress").max = plan.goal;$("goal-progress").value = Math.min(plan.available, plan.goal);}
@@ -423,6 +446,18 @@ function revealWorkspace(plan = false) {
   const rect = target.getBoundingClientRect();
   if (rect.top < 0 || rect.bottom > innerHeight) target.scrollIntoView({block: "nearest", behavior: "instant"});
 }
+function setNavigation(id) {
+  for (const link of document.querySelectorAll("nav a")) {
+    if (link.hash === `#${id}`) link.setAttribute("aria-current", "location");else link.removeAttribute("aria-current");
+  }
+}
+document.addEventListener("focusin", event => {
+  if (event.target.closest("#next-step")) setNavigation("plan-title");
+  else if (event.target.closest("#scenario-workspace")) setNavigation("shock-title");
+  else if (event.target.closest("#overview, #lookup-form")) setNavigation("overview");
+});
+for (const link of document.querySelectorAll("nav a")) link.addEventListener("click", () => setNavigation(link.hash.slice(1)));
+for (const id of ["before-after-details", "full-plan-details"]) $(id).addEventListener("toggle", () => {if ($(id).open) flowWater();else clearWaterFlow();});
 $("explore-change").addEventListener("click", () => revealWorkspace());
 for (const link of document.querySelectorAll('a[href="#shock-title"], a[href="#plan-title"]')) link.addEventListener("click", event => {event.preventDefault();revealWorkspace(link.hash === "#plan-title");});
 narrowWorkspace.addEventListener("change", () => {if (selected) $("scenario-workspace").open = !narrowWorkspace.matches;});

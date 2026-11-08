@@ -48,14 +48,20 @@ credentials or put tokens into tracked files or command URLs.
   live in `public/charts.mjs`. Keep `public/engine.mjs` and Python formulas intact.
 - For substantial UI changes, use the optional isolated Chrome checks in
   `tests/browser/dashboard.mjs`, `tests/browser/chart-layout.mjs` and
-  `tests/browser/connected-workspace.mjs`; see README
+  `tests/browser/connected-workspace.mjs`, plus `tests/browser/brand-motion.mjs`
+  for color or animation changes; see README
   for setup. Check account switching, 6/12-month geometry and mobile overflow.
 - Measure charts after revealing their content, using the visible cash-flow
   panel. Preserve explicit monthly plot heights (260px desktop, 240px mobile)
   and matching SVG coordinates; never magnify a hidden plot's fallback width.
-- Brand: restrained blue Ripple palette, water drop and open perspective waves.
-  Shock feedback lasts 660ms; continuous inputs get one smaller ripple after
-  180ms idle. Disable motion for reduced motion and never delay calculations.
+- Brand: #3D38F5 for identity and historical context; #AED904 for money out,
+  simulated states and differences. Use neutral surfaces, dark body text and
+  dark outlines on lime chart bars. Lime does not mean a favorable outcome.
+  The SVG mark uses a drop and three open perspective waves.
+- Shock feedback lasts 700ms; continuous inputs get one smaller ripple after
+  180ms idle. Filled After bars and savings progress can show a finite 1200ms
+  water surface on relevant changes or disclosure. Never loop it, animate a
+  financial amount, delay calculations or bypass reduced-motion preferences.
 - Keep one connected account workspace: primary historical metrics above a
   desktop cash-flow/scenario pair, with next-step guidance and expandable full
   plans directly after the outcome. Narrow screens use a scenario disclosure

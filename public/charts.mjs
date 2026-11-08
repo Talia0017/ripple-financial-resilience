@@ -77,6 +77,21 @@ export function renderMonthlyChart(container, rows, tooltip) {
   tooltip.hidden = true;
 }
 
+// Clip a brief surface current to the actual filled amount; it never changes the bar geometry.
+function waterSurface(svg, start, width, id) {
+  if (width <= 0) return;
+  const defs = node("defs"), clip = node("clipPath", {id});
+  clip.append(node("rect", {x: start, y: 4, width, height: 8, rx: 2}));defs.append(clip);svg.append(defs);
+  const surface = node("g", {"clip-path": `url(#${id})`});
+  surface.append(node("path", {class: "water-sheen", d: "M-84 7Q-62 0-42 7T0 7V16H-84Z"}));
+  svg.append(surface);
+}
+export function renderProgressFlow(container, progress) {
+  const svg = node("svg", {viewBox: "0 0 280 16", preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false", class: "progress-surface"});
+  waterSurface(svg, 2, 276 * Math.min(1, Math.max(0, progress)), "goal-surface-clip");
+  container.replaceChildren(svg);
+}
+
 export function renderComparisonChart(container, before, after) {
   const rows = comparisonMetrics(before, after);
   const html = (tag, text, className) => {
@@ -107,6 +122,7 @@ export function renderComparisonChart(container, before, after) {
       const x = number => 2 + (number - minimum) / (maximum - minimum) * 276;
       svg.append(node("rect", {x: 2, y: 4, width: 276, height: 8, rx: 2, class: "bar-track"}));
       if (value !== 0) svg.append(node("rect", {x: Math.min(x(0), x(value)), y: 4, width: Math.abs(x(value) - x(0)), height: 8, rx: 2, class: series === "before" ? "bar-before" : "bar-after"}));
+      if (series === "after" && value !== 0) waterSurface(svg, Math.min(x(0), x(value)), Math.abs(x(value) - x(0)), `surface-${row.key}`);
       svg.append(node("line", {x1: x(0), x2: x(0), y1: 1, y2: 15, class: "zero-line"}));
       group.append(svg);content.append(group);
     }

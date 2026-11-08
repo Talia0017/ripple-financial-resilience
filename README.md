@@ -252,11 +252,17 @@ state. Updating an assumption does not auto-scroll. Optional, short ripple
 feedback links a changed control with affected metrics, runway and the next
 step. Calculations and plan updates are synchronous; motion is optional.
 
-## Blue Ripple identity and connected discoveries
+## Ripple identity and connected discoveries
 
-The interface uses a restrained blue system: deep blue for key numbers, medium
-blue for comparisons, soft blue for context, and light backgrounds. The brand
-mark uses a water drop above two open, perspective wave arcs in an inline SVG.
+The interface uses **#3D38F5** for the brand, primary buttons, active navigation,
+major headings, historical values and Money In. **#AED904** distinguishes
+Money Out, After bars, changed-amount badges and scenario outcome accents.
+Neutral surfaces, dark body text and gray dividers keep the layout restrained.
+Lime marks a category or modeled change, not financial improvement or safety.
+Lime areas use dark text and visible dark outlines instead of light text on
+white. Browser checks verify text contrast and chart boundary contrast.
+The inline SVG brand mark uses a drop above three open, offset perspective wave
+arcs with graduated strokes, preserving a water surface rather than a bullseye.
 Shortfall months carry both an outlined circle and
 a background band, with matching accessible descriptions, so meaning does not
 depend on color. A single **Worth noticing** sentence connects typical account
@@ -286,10 +292,10 @@ the committed official assets and preserved engine. Browser aggregation is
 cached, uses the already-required assets and adds no data downloads. Missing
 observations and unavailable scenarios remain explicit in the method disclosure.
 
-Selecting or clearing a shock triggers a falling drop and two expanding blue
+Selecting or clearing a shock triggers a falling drop and two expanding brand-color
 ellipses beside that control. Changed comparison rows and, when changed, the
 runway outcome and next-step message receive staggered emphasis. A discrete interaction lasts
-**660 ms**. Calculations and annotations update immediately. Continuous slider
+**700 ms**. Calculations and annotations update immediately. Continuous slider
 or numeric input gets one smaller ripple after **180 ms** without input,
 rather than repeated large effects during a drag. Stable rows preserve keyboard
 focus. Reset, invalid scenarios and account changes clear pending and active
@@ -298,6 +304,17 @@ CSS and JavaScript honor `prefers-reduced-motion`; changing the preference
 stops feedback while retaining the updated numbers, differences and annotation.
 Browser QA captures real interaction frames and checks these states, contrast,
 mobile layout, loading behavior and input-update timing.
+
+A clipped water-surface highlight moves across filled **After** comparison bars
+and the savings progress bar for **1200 ms**, once per relevant settled change
+or disclosure reveal. During scenario changes, only affected financial bars
+move; savings progress responds to buffer changes. The surface stays inside
+the existing filled amount, including negative comparison values, without
+tweening the amount or inventing a value for zero. Opening a detailed comparison
+or full plan reveals its current surfaces once. There is no idle motion,
+infinite animation or loading metaphor. Reset, invalid input, account changes,
+panel closure and reduced motion clear the effects. Native progress semantics,
+signed differences, chart labels and financial calculations remain intact.
 
 Monthly charts have an explicit **260px** desktop / **240px** mobile height,
 unchanged between six- and twelve-month views. The renderer reveals history
@@ -390,6 +407,7 @@ local preview above, install Playwright in a temporary directory, then run:
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/dashboard.mjs
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/chart-layout.mjs
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/connected-workspace.mjs
+RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/brand-motion.mjs
 ```
 
 For example, `npm install --prefix /tmp/ripple-browser-qa --no-save --ignore-scripts playwright`
@@ -416,6 +434,13 @@ The connected-workspace suite exercises the complete account → insight → sho
 unchanged baseline amounts, scenario-dependent plans, adjacent outcome/next-step
 geometry, visible desktop chart/mobile baseline context, keyboard disclosures,
 account switching, reset, invalid inputs, negative buffers and reduced motion.
+
+The brand-motion suite checks exact color roles, AA text contrast, lime bar
+boundaries, navigation state, visible clipped water surfaces, finite playback,
+unchanged progress amounts and reduced motion at desktop and mobile widths.
+It saves real bar/progress interaction frames and contrast measurements beside
+the other temporary QA artifacts. The complete financial and connected-journey
+checks remain required for brand changes.
 
 `verify_web_profiles.py` additionally checks all 54,000 shipped monthly records
 against the original CSV data. All financial profiles and 54,000 shock results
