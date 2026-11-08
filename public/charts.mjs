@@ -9,7 +9,7 @@ const node = (tag, attributes = {}, text) => {
   return element;
 };
 function canvas(container, label, height, width = 720) {
-  const svg = node("svg", {viewBox: `0 0 ${width} ${height}`, role: "group", "aria-label": label, class: "chart-svg"});
+  const svg = node("svg", {viewBox: `0 0 ${width} ${height}`, width, height, preserveAspectRatio: "xMinYMin meet", role: "group", "aria-label": label, class: "chart-svg"});
   container.replaceChildren(svg);
   return svg;
 }
@@ -30,12 +30,16 @@ function bounds(values) {
 }
 
 export function renderMonthlyChart(container, rows, tooltip) {
-  const chartWidth = Math.max(rows.length > 6 ? 660 : 320, container.clientWidth);
-  const svg = canvas(container, "Recorded monthly money in and money out in CAD. Focus a month for exact amounts.", 286, chartWidth);
+  // The panel stays measurable while history loads; a hidden plot reports zero width.
+  const availableWidth = container.closest(".cashflow-panel")?.clientWidth || container.clientWidth;
+  const chartWidth = Math.max(rows.length > 6 ? 660 : 240, availableWidth);
+  const chartHeight = Number.parseFloat(getComputedStyle(container).getPropertyValue("--chart-height")) || 260;
+  const svg = canvas(container, "Recorded monthly money in and money out in CAD. Focus a month for exact amounts.", chartHeight, chartWidth);
   if (rows.length > 6) svg.classList.add("chart-wide");
   const left = 58, right = chartWidth - 12, plotWidth = right - left;
   const [min, max] = bounds(rows.flatMap(row => row.slice(1)));
-  const y = value => 224 - (value - min) / (max - min) * 196;
+  const top = 26, bottom = chartHeight - 52;
+  const y = value => bottom - (value - min) / (max - min) * (bottom - top);
   for (let i = 0; i <= 3; i++) {
     const value = min + (max - min) * i / 3;
     svg.append(node("line", {x1: left, x2: right, y1: y(value), y2: y(value), class: value === 0 ? "zero-line" : "grid-line"}));
@@ -51,11 +55,11 @@ export function renderMonthlyChart(container, rows, tooltip) {
     const shortfall = Number.isFinite(incoming) && Number.isFinite(outgoing) && outgoing > incoming;
     group.setAttribute("data-shortfall", String(shortfall));
     if (shortfall) {
-      group.append(node("rect", {x: center - step / 2 + 3, y: 20, width: step - 6, height: 210, rx: 5, class: "shortfall-band"}));
+      group.append(node("rect", {x: center - step / 2 + 3, y: 20, width: step - 6, height: bottom - 14, rx: 5, class: "shortfall-band"}));
       group.append(node("circle", {cx: center, cy: 17, r: 5, class: "shortfall-marker"}));
     }
     // The transparent hit target keeps zero and missing records keyboard/touch accessible.
-    group.append(node("rect", {x: center - step / 2 + 3, y: 20, width: step - 6, height: 210, class: "chart-hit"}));
+    group.append(node("rect", {x: center - step / 2 + 3, y: 20, width: step - 6, height: bottom - 14, class: "chart-hit"}));
     [incoming, outgoing].forEach((value, series) => {
       if (Number.isFinite(value)) group.append(node("rect", {x: center + (series ? 3 : -width - 3), y: Math.min(y(0), y(value)), width, height: Math.max(1, Math.abs(y(value) - y(0))), rx: 2, class: series ? "bar-out" : "bar-in"}));
       else group.append(node("text", {x: center + (series ? width / 2 + 3 : -width / 2 - 3), y: y(0) - 5, "text-anchor": "middle", class: "axis-label"}, "—"));
@@ -63,8 +67,12 @@ export function renderMonthlyChart(container, rows, tooltip) {
     interactive(group, `${monthName(month)}: money in ${money(incoming)}; money out ${money(outgoing)}.${shortfall ? ` Money out exceeded money in by ${money(outgoing - incoming)}.` : ""}`, tooltip);
     svg.append(group);
     const label = monthName(month).split(" ");
-    svg.append(node("text", {x: center, y: 248, "text-anchor": "middle", class: "axis-label"}, label[0]));
-    svg.append(node("text", {x: center, y: 265, "text-anchor": "middle", class: "axis-label axis-year"}, label.slice(1).join(" ")));
+    svg.append(node("text", {x: center, y: chartHeight - 28, "text-anchor": "middle", class: "axis-label"}, label[0]));
+    const year = label.slice(1).join(" ");
+    // Narrow six-month cards show each year once instead of crowding repeated year labels.
+    if (step >= 42 || index === 0 || year !== monthName(rows[index - 1][0]).split(" ").slice(1).join(" ")) {
+      svg.append(node("text", {x: center, y: chartHeight - 10, "text-anchor": "middle", class: "axis-label axis-year"}, year));
+    }
   });
   tooltip.hidden = true;
 }

@@ -45,6 +45,16 @@ async function choose(page, profile) {
   await page.locator("#history-content").waitFor({state: "visible"});
   check(await page.locator("#selected-account").textContent() === `Account ${profile.account_id}`, "Account identification");
 }
+async function scrollSettled(page) {
+  await page.evaluate(() => new Promise(resolve => {
+    let previous = scrollY, since = performance.now();
+    function frame(now) {
+      if (scrollY !== previous) {previous = scrollY;since = now;}
+      if (now - since >= 120) resolve();else requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }));
+}
 try {
   const {ctx, page} = await context({width: 1440, height: 1050});
   await ready(page);
@@ -119,9 +129,12 @@ try {
   check(await page.locator("#ei-rate-number").inputValue() === "80", "Slider updates numeric replacement input");
   await page.locator("#ei-rate-number").fill("65");
   check(await page.locator("#ei-rate").inputValue() === "65", "Numeric replacement updates slider");
-  await page.locator("#ei-rate").focus();
+  // Finish focus-related scrolling before measuring whether a keyboard adjustment moves the page.
+  await page.locator("#ei-rate").evaluate(item => {item.scrollIntoView({block: "center", behavior: "instant"});item.focus({preventScroll: true});});
+  await scrollSettled(page);
   const scrollPosition = await page.evaluate(() => scrollY);
   await page.keyboard.press("ArrowRight");
+  await scrollSettled(page);
   check(await page.locator("#ei-rate-number").inputValue() === "66", "Replacement slider supports keyboard changes");
   check(Math.abs(await page.evaluate(() => scrollY) - scrollPosition) < 1, "Changing a parameter does not auto-scroll");
   await page.locator("#ei-rate").fill("80");
@@ -240,12 +253,12 @@ try {
   });
   scenarioUpdateMs = pulse.updateMs;
   check(pulse.names.includes("drop-ring") && pulse.names.includes("impact-spread"), "A selected shock produces a subtle control-to-impact ripple");
-  check(pulse.duration <= 500 && pulse.updateMs < 200 && pulse.runway === runwayHeading(simulate(profile, {job_loss: true})), "Results update immediately and ripple feedback lasts at most 500 ms");
+  check(pulse.duration <= 700 && pulse.updateMs < 200 && pulse.runway === runwayHeading(simulate(profile, {job_loss: true})), "Results update immediately and discrete ripple feedback stays within 700 ms");
   check(await motion.page.evaluate(() => {
     document.body.classList.add("is-loading");
     const active = document.getAnimations().some(item => item.animationName === "loading-ring");
-    document.body.classList.remove("is-loading");return active;
-  }), "Loading ring appears only in the loading state");
+    document.body.classList.remove("is-loading");return !active;
+  }), "Loading uses a readable status without a permanent looping animation");
   const savedNode = await motion.page.locator('.comparison-metric[data-metric="income"]').evaluate(item => {item.dataset.focusProbe = "retained";return true;});
   await motion.page.locator("#ei-rate-number").fill("80");
   check(savedNode && await motion.page.locator('.comparison-metric[data-metric="income"]').getAttribute("data-focus-probe") === "retained", "Comparison rows remain stable during updates");

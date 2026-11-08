@@ -238,7 +238,8 @@ feedback links a changed control with the metrics it affects.
 
 The interface uses a restrained blue system: deep blue for key numbers, medium
 blue for comparisons, soft blue for context, and light backgrounds. The brand
-mark uses concentric rings. Shortfall months carry both an outlined circle and
+mark uses a water drop above two open, perspective wave arcs in an inline SVG.
+Shortfall months carry both an outlined circle and
 a background band, with matching accessible descriptions, so meaning does not
 depend on color. A single **Worth noticing** sentence connects typical account
 summaries with actual recent monthly variation.
@@ -267,15 +268,30 @@ the committed official assets and preserved engine. Browser aggregation is
 cached, uses the already-required assets and adds no data downloads. Missing
 observations and unavailable scenarios remain explicit in the method disclosure.
 
-On explicit shock input, a control ring spreads to affected comparison rows
-and, when changed, the runway outcome. Updates are synchronous; only the visual
-feedback is staggered. Feedback lasts at most **480 ms** and is throttled to
-one pulse per **500 ms** during rapid input. Stable comparison rows preserve
-keyboard focus. Reset and account changes clear feedback. Loading rings run
-only while profiles load. CSS and JavaScript both honor `prefers-reduced-motion`;
-changing that preference stops feedback without changing financial behavior.
-No motion is needed to understand values or changes. Browser QA checks these
-states, contrast, mobile layout, loading behavior and input-update timing.
+Selecting or clearing a shock triggers a falling drop and two expanding blue
+ellipses beside that control. Changed comparison rows and, when changed, the
+runway outcome receive staggered emphasis. A discrete interaction lasts
+**660 ms**. Calculations and annotations update immediately. Continuous slider
+or numeric input gets one smaller ripple after **180 ms** without input,
+rather than repeated large effects during a drag. Stable rows preserve keyboard
+focus. Reset, invalid scenarios and account changes clear pending and active
+feedback. Loading uses readable status text without a looping animation.
+CSS and JavaScript honor `prefers-reduced-motion`; changing the preference
+stops feedback while retaining the updated numbers, differences and annotation.
+Browser QA captures real interaction frames and checks these states, contrast,
+mobile layout, loading behavior and input-update timing.
+
+Monthly charts have an explicit **260px** desktop / **240px** mobile height,
+unchanged between six- and twelve-month views. The renderer reveals history
+before measuring the visible cash-flow panel and uses matching SVG dimensions.
+The resize observer watches that panel, avoiding the former hidden-plot width
+of zero that magnified a 320px fallback after cached account switches. Old chart
+data, highlights and tooltips are cleared before loading another account.
+Twelve-month charts scroll horizontally on narrow screens without widening
+the page. Compact header, lookup and card spacing keep the primary overview
+together; secondary details remain expandable and text stays readable. In
+1440px browser checks the overview decreased from about 952px to 731px, without
+a fixed section height or clipped content.
 
 The emergency goal is **3 × typical baseline spending**. Buffer progress uses
 the non-negative remaining scenario buffer, capped visually at the goal. A
@@ -353,6 +369,7 @@ local preview above, install Playwright in a temporary directory, then run:
 ```sh
 # Set this to the absolute file URL of your separate Playwright installation.
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/dashboard.mjs
+RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/chart-layout.mjs
 ```
 
 For example, `npm install --prefix /tmp/ripple-browser-qa --no-save --ignore-scripts playwright`
@@ -364,6 +381,15 @@ widths, profile/history loading failure recovery and the production CSP. It
 writes screenshots to the system temporary directory, or `RIPPLE_SCREENSHOTS`.
 Use `RIPPLE_TEST_URL` to select a different local test server. Mocked HTTP 503
 responses are explicit recovery tests, not production fallback data.
+
+The chart-layout regression checks direct accounts 39859 and 77059, history and
+buffer edge cases, and ten additional random selections at each of
+1366×768, 1440×900, 375×900 and 320×900. It measures SVG/text scale and fixed
+height through repeated six-/twelve-month switches and browser resizes, compares
+annotations and highlights with actual account rows, and captures first/later
+selections. It also captures visible impact/spread/finished animation frames,
+checks settled-input feedback, reset and reduced motion. Screenshots and
+measurement reports go to the temporary directory, not the public site.
 
 `verify_web_profiles.py` additionally checks all 54,000 shipped monthly records
 against the original CSV data. All financial profiles and 54,000 shock results

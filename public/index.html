@@ -12,7 +12,7 @@
 <body>
   <a class="skip" href="#main">Skip to main content</a>
   <header class="topbar">
-    <a class="brand" href="./" aria-label="Ripple home"><span class="ripple-mark" aria-hidden="true"></span>Ripple</a>
+    <a class="brand" href="./" aria-label="Ripple home"><svg class="ripple-mark" viewBox="0 0 44 34" width="38" height="32" aria-hidden="true" focusable="false"><path class="brand-drop" d="M22 2c-1.6 2.5-4 5-4 7.5a4 4 0 0 0 8 0C26 7 23.6 4.5 22 2Z"/><path class="brand-wave" d="M14 18c-8 3 0 8 9 7s15-5 7-7"/><path class="brand-wave brand-wave-outer" d="M7 18C-4 24 9 32 23 31S49 23 37 18"/></svg>Ripple</a>
     <nav aria-label="Dashboard sections"><a href="#overview">Overview</a><a href="#shock-title">Scenarios</a><a href="#plan-title">Your plan</a></nav>
     <span class="track">Tangerine Track · Datathon 2026</span>
   </header>
@@ -32,7 +32,7 @@
         <div class="section-heading"><h2 id="overview-title">Your Financial Overview</h2><div class="account-context"><span id="selected-account" class="account-badge"></span><p id="account-history" class="muted"></p></div></div>
         <div id="data-warnings" aria-live="polite"></div>
         <div class="metrics" id="metrics"></div>
-        <div class="baseline"><span>Baseline Financial Runway</span><strong id="baseline-runway"></strong><span class="muted">Historical estimate</span></div>
+        <div class="baseline"><span>Baseline Financial Runway</span><strong id="baseline-runway"></strong><span class="sr-only">Historical estimate</span></div>
         <article class="cashflow-panel" aria-labelledby="cashflow-title">
           <div class="chart-heading"><h3 id="cashflow-title">Monthly Cash Flow</h3><div class="segmented" role="group" aria-label="Recorded history window"><button id="history-six" type="button" aria-pressed="true">6 months</button><button id="history-twelve" type="button" aria-pressed="false">12 months</button></div></div>
           <div class="chart-meta"><div class="legend"><span><i class="key in" aria-hidden="true"></i>Money In</span><span><i class="key out" aria-hidden="true"></i>Money Out</span><span><i class="key shortfall-key" aria-hidden="true"></i>Out &gt; In</span></div><p id="history-status" class="muted" role="status">Select an account to load recorded history.</p></div>

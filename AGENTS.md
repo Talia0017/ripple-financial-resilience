@@ -47,9 +47,14 @@ credentials or put tokens into tracked files or command URLs.
 - Dashboard presentation/planning rules live in `public/dashboard.mjs`; charts
   live in `public/charts.mjs`. Keep `public/engine.mjs` and Python formulas intact.
 - For substantial UI changes, use the optional isolated Chrome checks in
-  `tests/browser/dashboard.mjs`; see README for setup. Check mobile overflow.
-- Brand: restrained blue Ripple palette and concentric-ring mark. Input feedback
-  must be short, optional and disabled for reduced motion; never delay results.
+  `tests/browser/dashboard.mjs` and `tests/browser/chart-layout.mjs`; see README
+  for setup. Check account switching, 6/12-month geometry and mobile overflow.
+- Measure charts after revealing their content, using the visible cash-flow
+  panel. Preserve explicit monthly plot heights (260px desktop, 240px mobile)
+  and matching SVG coordinates; never magnify a hidden plot's fallback width.
+- Brand: restrained blue Ripple palette, water drop and open perspective waves.
+  Shock feedback lasts 660ms; continuous inputs get one smaller ripple after
+  180ms idle. Disable motion for reduced motion and never delay calculations.
 - Discovery evidence reuses the official engine and actual recent monthly rows.
   The B/S spending equivalent is descriptive and must not be called runway or
   total savings. Preserve sample sizes, missing-data notes and source attribution.

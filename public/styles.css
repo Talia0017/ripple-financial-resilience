@@ -48,8 +48,6 @@ p { margin-bottom: 16px; }
 .lead { margin-bottom: 0; }
 .topbar { max-width: 1240px; margin: auto; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--line); }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--brand); text-decoration: none; font-size: 29px; font-weight: 750; letter-spacing: -1px; }
-.ripple-mark { width: 27px; height: 27px; border: 2px solid var(--brand); border-radius: 50%; box-shadow: 0 0 0 5px #dce9fb inset; position: relative; }
-.ripple-mark:after { content: ""; position: absolute; inset: 7px; background: var(--brand); border-radius: 50%; }
 nav { display: flex; gap: 26px; }
 nav a { color: var(--muted); font-size: 16px; text-decoration: none; padding: 9px 0; }
 nav a:hover { color: var(--brand); text-decoration: underline; }
@@ -101,7 +99,9 @@ label { display: block; font-weight: 550; }
 .out { background: #648bc3; }
 .before { background: #cad8ec; }
 .chart-viewport { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
-.chart-svg { display: block; width: 100%; min-width: 320px; height: auto; overflow: visible; }
+.chart-svg { display: block; width: 100%; min-width: 320px; height: var(--chart-height,226px); overflow: visible; }
+#monthly-chart { --chart-height: 260px; height: var(--chart-height); }
+#monthly-chart .chart-svg:not(.chart-wide) { min-width: 0; }
 .chart-wide { min-width: 660px; }
 .axis-label { fill: #52657f; font-size: 14px; font-family: inherit; }
 .axis-year { font-size: 12px; }
@@ -232,9 +232,9 @@ footer p, footer small { font-size: 14px; color: var(--muted); margin: 0; }
   footer { margin: 10px 28px 0; flex-wrap: wrap; }
 }
 @media(max-width:700px) {
+  #monthly-chart { --chart-height: 240px; }
   .topbar { padding: 16px; gap: 10px; }
   .brand { font-size: 24px; }
-  .ripple-mark { width: 24px; height: 24px; }
   nav { gap: 12px; }
   nav a { font-size: 16px; white-space: nowrap; }
   main { padding: 22px 16px 8px; }
@@ -302,9 +302,6 @@ footer p, footer small { font-size: 14px; color: var(--muted); margin: 0; }
 :root { --blue-deep: #173c7a; --blue-soft: #e9f1ff; --blue-mid: #648bc3; }
 h1, h2 { color: #173158; }
 .metric>strong { color: var(--blue-deep); font-weight: 650; }
-.ripple-mark { width: 30px; height: 30px; box-shadow: none; border-color: #416fb9; }
-.ripple-mark:before { content: ""; position: absolute; inset: 4px; border: 1px solid #648bc3; border-radius: 50%; }
-.ripple-mark:after { inset: 9px; }
 .brand { letter-spacing: -.9px; }
 .outcome { background: linear-gradient(110deg,#e8f0ff,#f1f6ff); }
 .buffer-context { margin: 10px 0 0; color: var(--muted); }
@@ -326,25 +323,77 @@ h1, h2 { color: #173158; }
 .story-shortfall { fill: #527bb9; }
 .story-no_shortfall { fill: #244f9d; }
 .ripple-source { position: relative; }
-@media(prefers-reduced-motion:no-preference) {
-  .ripple-source:after { content: ""; position: absolute; inset: -2px; border-radius: 8px; pointer-events: none; animation: drop-ring 340ms ease-out; }
-  .ripple-impact { animation: impact-spread 360ms ease-out both; }
-  .comparison-metric:nth-child(1).ripple-impact { animation-delay: 30ms; }
-  .comparison-metric:nth-child(2).ripple-impact { animation-delay: 60ms; }
-  .comparison-metric:nth-child(3).ripple-impact { animation-delay: 90ms; }
-  .comparison-metric:nth-child(4).ripple-impact { animation-delay: 120ms; }
-  .outcome.ripple-impact { animation-delay: 90ms; }
-  .is-loading .ripple-mark:before { animation: loading-ring 1500ms ease-out infinite; }
-  @keyframes drop-ring { from { box-shadow: 0 0 0 0 #4d82cc45; } to { box-shadow: 0 0 0 9px #4d82cc00; } }
-  @keyframes impact-spread { from { box-shadow: 0 0 0 0 #4d82cc30; } to { box-shadow: 0 0 0 7px #4d82cc00; } }
-  @keyframes loading-ring { from { transform: scale(.8); opacity: .7; } to { transform: scale(1.7); opacity: 0; } }
-}
-@media(prefers-reduced-motion:reduce) {
-  .ripple-source:after, .ripple-impact, .is-loading .ripple-mark:before { animation: none !important; }
-}
 @media(max-width:700px) {
-  .ripple-mark { width: 26px; height: 26px; }
-  .ripple-mark:after { inset: 7px; }
   .buffer-context strong { font-size: 18px; }
   .discovery-takeaways strong { font-size: 21px; }
+}
+
+/* Compact spacing keeps the overview together without fixing its content height. */
+.topbar { padding-top: 12px; padding-bottom: 12px; }
+main { padding-top: 18px; }
+h1 { margin-bottom: 4px; }
+.intro { margin-bottom: 12px; }
+.lookup { margin-bottom: 16px; }
+.has-account .intro h1 { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+#overview { padding: 18px; }
+.section-heading { margin-bottom: 12px; }
+.metric-heading { min-height: 44px; margin-bottom: 0; }
+.baseline { margin-top: 14px; padding: 10px 0; }
+.cashflow-panel { margin-top: 4px; }
+.chart-heading { margin-bottom: 6px; }
+.chart-meta { margin-bottom: 4px; }
+.chart-meta .legend { margin: 4px 0; }
+.insights { display: flex; align-items: baseline; gap: 8px; margin: 8px 0; }
+.insight-label { display: inline; flex-shrink: 0; margin: 0; }
+.financial-details { padding: 4px 0 0; }
+.buffer-context { margin-top: 8px; }
+.buffer-context strong, .buffer-context span { display: inline; font-size: 16px; line-height: 1.5; }
+.shock-section, .planning-section { margin-top: 36px; }
+.outcome { padding: 18px 22px; }
+.plan-card { padding: 20px; }
+@media(min-width:701px) {
+  #overview>.section-heading .account-context { display: flex; align-items: baseline; gap: 12px; }
+  #overview>.section-heading .account-context p { margin: 0; }
+}
+@media(max-width:700px) {
+  .topbar { padding-top: 12px; padding-bottom: 12px; }
+  main { padding-top: 18px; }
+  #overview { padding: 18px 16px 4px; }
+  .metric { padding-bottom: 12px; }
+  .insights { display: block; }
+  .insight-label { display: block; margin-bottom: 3px; }
+  .chart-meta p { margin-bottom: 8px; }
+  .shock-section, .planning-section { margin-top: 30px; }
+}
+
+/* A falling drop above open, perspective waves avoids a target-like closed circle. */
+.ripple-mark { display: block; flex-shrink: 0; width: 38px; height: 32px; overflow: visible; }
+.brand-drop { fill: var(--brand); }
+.brand-wave { fill: none; stroke: var(--brand); stroke-width: 2; stroke-linecap: round; }
+.brand-wave-outer { stroke-width: 1.5; opacity: .65; }
+@media(max-width:700px) { .ripple-mark { width: 34px; height: 29px; } }
+
+/* A small, real SVG impact is attached to the working control; it never intercepts input. */
+.shock-wave { position: absolute; left: 50%; top: calc(100% - 8px); width: 120px; height: 56px; transform: translateX(-50%); overflow: visible; pointer-events: none; z-index: 2; opacity: 0; }
+.shock-wave.is-settled { width: 96px; }
+.water-drop { fill: #245bb4; }
+.water-ring { fill: none; stroke: #3a79d0; stroke-width: 2.2; transform-box: fill-box; transform-origin: center; opacity: 0; }
+@media(prefers-reduced-motion:no-preference) {
+  .shock-wave { animation: ripple-scene 660ms linear both; }
+  .water-drop { animation: water-drop 180ms ease-in both; }
+  .water-ring-first { animation: drop-ring 480ms 180ms ease-out forwards; }
+  .water-ring-second { animation: drop-ring 420ms 240ms ease-out forwards; }
+  .ripple-impact { animation: impact-spread 480ms ease-out both; }
+  .comparison-metric:nth-child(1).ripple-impact { animation-delay: 130ms; }
+  .comparison-metric:nth-child(2).ripple-impact { animation-delay: 150ms; }
+  .comparison-metric:nth-child(3).ripple-impact { animation-delay: 170ms; }
+  .comparison-metric:nth-child(4).ripple-impact, .outcome.ripple-impact { animation-delay: 180ms; }
+  @keyframes ripple-scene { 0%,75% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes water-drop { 0% { opacity: 0; transform: translateY(-12px); } 30%,70% { opacity: 1; } 100% { opacity: 0; transform: translateY(12px); } }
+  @keyframes drop-ring { 0% { opacity: .85; transform: scale(.45,.55); } 100% { opacity: 0; transform: scale(1.65,1.25); } }
+  @keyframes impact-spread { 0%,35% { background-color: #dceaff; box-shadow: 0 0 0 2px #6c9bd650; } 100% { background-color: transparent; box-shadow: 0 0 0 7px #6c9bd600; } }
+}
+@media(prefers-reduced-motion:reduce) {
+  .shock-wave { display: none; }
+  .shock-wave, .water-drop, .water-ring, .ripple-impact { animation: none !important; }
 }

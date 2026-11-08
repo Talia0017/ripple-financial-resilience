@@ -16,28 +16,59 @@ let allHistories = null, evidence = null, lastScenario = null;
 let historyUnavailable = false;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const rippleTargets = new Map();
-let lastRipple = -Infinity;
+let rippleTimer = null, pendingRipple = null;
 
 function clearRippleFeedback() {
+  if (rippleTimer !== null) clearTimeout(rippleTimer);
+  rippleTimer = null;pendingRipple = null;
   for (const finish of rippleTargets.values()) finish();
+}
+function playRippleFeedback(source, keys, runwayChanged, settled = false) {
+  if (reducedMotion.matches || !source?.isConnected || !selected) {clearRippleFeedback();return;}
+  clearRippleFeedback();
+  const ns = "http://www.w3.org/2000/svg";
+  const wave = document.createElementNS(ns, "svg");
+  for (const [key, value] of Object.entries({viewBox: "0 0 120 56", class: `shock-wave${settled ? " is-settled" : ""}`, "aria-hidden": "true", focusable: "false"})) wave.setAttribute(key, value);
+  const shape = (tag, attributes) => {
+    const item = document.createElementNS(ns, tag);
+    for (const [key, value] of Object.entries(attributes)) item.setAttribute(key, value);
+    wave.append(item);
+  };
+  shape("path", {class: "water-drop", d: "M60 1c-2 3-4 5-4 7a4 4 0 0 0 8 0c0-2-2-4-4-7Z"});
+  shape("ellipse", {class: "water-ring water-ring-first", cx: 60, cy: 22, rx: 24, ry: 6});
+  shape("ellipse", {class: "water-ring water-ring-second", cx: 60, cy: 22, rx: 31, ry: 8});
+  source.append(wave);
+  const targets = [[source, "ripple-source", wave, "ripple-scene"], ...keys.map(key => {
+    const item = $("comparison-chart").querySelector(`[data-metric="${key}"]`);
+    return [item, "ripple-impact", item, "impact-spread"];
+  })];
+  if (runwayChanged) {const item = document.querySelector(".outcome");targets.push([item, "ripple-impact", item, "impact-spread"]);}
+  for (const [item, className, listener, animationName] of targets) {
+    if (!item) continue;
+    const finish = event => {
+      if (event && (event.target !== listener || event.animationName !== animationName)) return;
+      listener.removeEventListener("animationend", finish);listener.removeEventListener("animationcancel", finish);
+      item.classList.remove(className);rippleTargets.delete(item);
+      if (listener === wave) wave.remove();
+    };
+    item.classList.add(className);rippleTargets.set(item, finish);
+    listener.addEventListener("animationend", finish);listener.addEventListener("animationcancel", finish);
+  }
 }
 function rippleFeedback(event, keys, runwayChanged) {
   if (reducedMotion.matches) {clearRippleFeedback();return;}
   const source = event?.target?.closest(".shock-option, .shock-assumption");
-  if (!source || performance.now() - lastRipple < 500) return;
-  clearRippleFeedback();
-  lastRipple = performance.now();
-  const targets = [[source, "ripple-source"], ...keys.map(key => [$("comparison-chart").querySelector(`[data-metric="${key}"]`), "ripple-impact"])];
-  if (runwayChanged) targets.push([document.querySelector(".outcome"), "ripple-impact"]);
-  for (const [item, className] of targets) {
-    if (!item) continue;
-    const finish = () => {
-      item.classList.remove(className);rippleTargets.delete(item);
-      item.removeEventListener("animationend", finish);item.removeEventListener("animationcancel", finish);
-    };
-    item.classList.add(className);rippleTargets.set(item, finish);
-    item.addEventListener("animationend", finish);item.addEventListener("animationcancel", finish);
-  }
+  if (!source) return;
+  if (event.target.type === "checkbox") {playRippleFeedback(source, keys, runwayChanged);return;}
+  const previous = pendingRipple?.source === source ? pendingRipple : null;
+  pendingRipple = {source, keys: [...new Set([...(previous?.keys ?? []), ...keys])], runway: runwayChanged || Boolean(previous?.runway), account: selected.account_id};
+  if (rippleTimer !== null) clearTimeout(rippleTimer);
+  // Calculation is immediate; only the small final visual ripple waits for input to settle.
+  rippleTimer = setTimeout(() => {
+    const pulse = pendingRipple;
+    if (pulse && pulse.account === selected?.account_id) playRippleFeedback(pulse.source, pulse.keys, pulse.runway, true);
+    else clearRippleFeedback();
+  }, 180);
 }
 reducedMotion.addEventListener("change", () => {if (reducedMotion.matches) clearRippleFeedback();});
 
@@ -54,6 +85,7 @@ function clearScenarioOutput() {
   $("scenario-insight").removeAttribute("data-affected");
 }
 function clearSelection() {
+  document.body.classList.remove("has-account");
   selected = null;
   selectedHistory = null;
   historyGeneration++;
@@ -179,6 +211,7 @@ function updateComparison(event) {
 }
 function renderHistory() {
   if (!selectedHistory) return;
+  $("history-content").hidden = false;
   const rows = selectedHistory.slice(-historyWindow);
   $("history-six").setAttribute("aria-pressed", String(historyWindow === 6));
   $("history-twelve").setAttribute("aria-pressed", String(historyWindow === 12));
@@ -195,6 +228,10 @@ function renderHistory() {
 async function loadHistory() {
   if (!selected) return;
   const generation = ++historyGeneration;
+  selectedHistory = null;
+  $("monthly-chart").replaceChildren();$("monthly-insights").replaceChildren();$("monthly-table").replaceChildren();
+  $("monthly-tooltip").hidden = true;$("monthly-tooltip").textContent = "";
+  $("additional-monthly-insight").textContent = "";$("history-note").textContent = "";
   if (historyUnavailable) {historyUnavailable = false;renderDiscovery();}
   $("history-content").hidden = true;
   $("retry-history").hidden = true;
@@ -229,6 +266,7 @@ function chooseAccount(accountId) {
     return;
   }
   selected = profile; selectedHistory = null; historyWindow = 6;
+  document.body.classList.add("has-account");
   $("account-id").value = profile.account_id;
   $("account-id").removeAttribute("aria-invalid");
   message($("lookup-error"), "");
@@ -253,7 +291,7 @@ function chooseAccount(accountId) {
     if (key === "buffer") {
       const equivalent = bufferEquivalent(profile);
       const context = element("p", undefined, "buffer-context");context.id = "buffer-context";
-      context.append(element("strong", !equivalent ? "Equivalent unavailable" : equivalent.positive ? `${equivalent.ratio < .05 ? "< 0.1" : "≈ " + new Intl.NumberFormat("en-CA", {maximumFractionDigits: 1}).format(equivalent.ratio)}× monthly spending` : equivalent.label), element("span", "Not runway or total savings."));
+      context.append(element("strong", !equivalent ? "Equivalent unavailable" : equivalent.positive ? `${equivalent.ratio < .05 ? "< 0.1" : "≈ " + new Intl.NumberFormat("en-CA", {maximumFractionDigits: 1}).format(equivalent.ratio)}× monthly spending` : equivalent.label), element("span", " · not runway"));
       card.append(context);
     }
     return card;
@@ -277,6 +315,7 @@ function chooseAccount(accountId) {
   }
   $("higher-bills").disabled = !Number.isFinite(profile.household_bills);
   resetScenario();loadHistory();
+  renderDiscovery();
   $("overview-title").tabIndex = -1;$("overview-title").focus({preventScroll: true});
 }
 function renderDiscovery() {
@@ -289,7 +328,8 @@ function renderDiscovery() {
   $("discovery-buffer-number").textContent = story ? `${wholeMoney(story.groups[0].medianBuffer)} vs ${wholeMoney(story.groups[1].medianBuffer)}` : "Comparison unavailable";
   $("discovery-buffer-text").textContent = story ? `median buffers across cash-flow groups within ${story.sample} similar-inflow accounts.` : "Valid summary records are needed for this comparison.";
   $("discovery-shock-text").textContent = `55% income replacement across ${count(shock.count)} accounts. Compare the outcomes →`;
-  if (shock.count) renderStoryChart($("story-chart"), shock);
+  if (shock.count && !$("dashboard").hidden) renderStoryChart($("story-chart"), shock);
+  else if (shock.count) $("story-chart").replaceChildren();
   else $("story-chart").replaceChildren(element("p", "No calculable shock outcomes are available."));
   $("story-method").textContent = story ? `We used ${story.valid.toLocaleString("en-CA")} accounts with valid money-in and spending summaries out of ${story.total.toLocaleString("en-CA")}. The median money in is ${money(story.median)}. The inclusive band is 95%–105% of that median (approximately ${money(story.lower)}–${money(story.upper)}), giving ${story.sample} accounts. We compared each account's unrounded all-history median spending with its unrounded all-history median money in. Percentages use this ${story.sample}-account band as the denominator.` : "No valid summary cohort is available.";
   $("story-buffers").textContent = story ? story.groups.map(group => `${group.label}: median estimated buffer ${money(group.medianBuffer)} (${group.bufferCount} valid buffer estimates among ${group.count} accounts)`).join(". ") + ". These are historical balance estimates, not accessible savings." : "Missing buffer values are not substituted.";
@@ -347,13 +387,12 @@ $("show-research-method").addEventListener("click", () => {
   $("research-method").focus();
   $("research-method").scrollIntoView({block: "start"});
 });
-// Reflow chart geometry when the available width changes; numeric values stay intact.
+// Observe the visible panel, not the plot that is hidden temporarily during account changes.
 let lastChartWidth = 0;
 new ResizeObserver(entries => {
   const width = Math.round(entries[0].contentRect.width);
   if (!width || width === lastChartWidth) return;
   lastChartWidth = width;
   if (selectedHistory) renderHistory();
-  if (selected) updateComparison();
-  if (profiles.size) renderDiscovery();
-}).observe($("monthly-chart"));
+  if (profiles.size && !$("dashboard").hidden) renderDiscovery();
+}).observe(document.querySelector(".cashflow-panel"));
