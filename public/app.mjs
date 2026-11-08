@@ -1,5 +1,5 @@
 import {decodeProfiles, simulate} from "./engine.mjs";
-import {money, monthName, decodeHistory, monthlyInsights, monthlySummary, runwayHeading, runwayExplanation, scenarioInsight, savingsPlan, backupPlan, datasetStory} from "./dashboard.mjs";
+import {money, monthName, decodeHistory, monthlyInsights, monthlyDiscovery, bufferEquivalent, discoveryEvidence, runwayHeading, runwayExplanation, scenarioInsight, comparisonMetrics, savingsPlan, backupPlan} from "./dashboard.mjs";
 import {renderMonthlyChart, renderComparisonChart, renderStoryChart} from "./charts.mjs";
 
 const $ = id => document.getElementById(id);
@@ -12,9 +12,38 @@ const element = (tag, text, className) => {
 let profiles = new Map(), selected = null, sourceHashes = null;
 let loadGeneration = 0, historyGeneration = 0, historyWindow = 6;
 let historyPromise = null, selectedHistory = null;
+let allHistories = null, evidence = null, lastScenario = null;
+let historyUnavailable = false;
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const rippleTargets = new Map();
+let lastRipple = -Infinity;
+
+function clearRippleFeedback() {
+  for (const finish of rippleTargets.values()) finish();
+}
+function rippleFeedback(event, keys, runwayChanged) {
+  if (reducedMotion.matches) {clearRippleFeedback();return;}
+  const source = event?.target?.closest(".shock-option, .shock-assumption");
+  if (!source || performance.now() - lastRipple < 500) return;
+  clearRippleFeedback();
+  lastRipple = performance.now();
+  const targets = [[source, "ripple-source"], ...keys.map(key => [$("comparison-chart").querySelector(`[data-metric="${key}"]`), "ripple-impact"])];
+  if (runwayChanged) targets.push([document.querySelector(".outcome"), "ripple-impact"]);
+  for (const [item, className] of targets) {
+    if (!item) continue;
+    const finish = () => {
+      item.classList.remove(className);rippleTargets.delete(item);
+      item.removeEventListener("animationend", finish);item.removeEventListener("animationcancel", finish);
+    };
+    item.classList.add(className);rippleTargets.set(item, finish);
+    item.addEventListener("animationend", finish);item.addEventListener("animationcancel", finish);
+  }
+}
+reducedMotion.addEventListener("change", () => {if (reducedMotion.matches) clearRippleFeedback();});
 
 function message(item, text) {item.textContent = text; item.hidden = !text;}
 function clearScenarioOutput() {
+  clearRippleFeedback();lastScenario = null;
   $("comparison").hidden = true;
   $("scenario-invitation").hidden = true;
   $("comparison-chart").replaceChildren();
@@ -42,6 +71,7 @@ function setControls() {
   $("ei-output").textContent = `${$("ei-rate-number").value || "—"}%`;
 }
 function resetScenario() {
+  clearRippleFeedback();lastScenario = null;
   for (const id of ["job-loss", "higher-bills", "emergency-repair"]) $(id).checked = false;
   $("ei-rate").value = "55";
   $("ei-rate-number").value = "55";
@@ -93,7 +123,7 @@ function renderPlans(after, active) {
   }
   $("backup-plan").replaceChildren(...(after ? backupPlan(after, active) : ["Scenario data is unavailable. Resolve missing account values or invalid assumptions before using a backup plan."]).map(text => element("li", text)));
 }
-function updateComparison() {
+function updateComparison(event) {
   if (!selected) return;
   setControls();
   try {
@@ -113,6 +143,7 @@ function updateComparison() {
       $("scenario-invitation").hidden = false;
       message($("scenario-error"), "");
       renderPlans(before, false);
+      lastScenario = before;
       return;
     }
     $("scenario-invitation").hidden = true;
@@ -136,6 +167,10 @@ function updateComparison() {
     message($("scenario-error"), "");
     $("comparison").hidden = false;
     renderPlans(after, count > 0);
+    const previous = lastScenario ?? before;
+    const keys = comparisonMetrics(previous, after).filter(row => row.changed).map(row => row.key);
+    rippleFeedback(event, keys, previous.runway !== after.runway || previous.no_shortfall !== after.no_shortfall);
+    lastScenario = after;
   } catch (error) {
     clearScenarioOutput();
     message($("scenario-error"), error.message);
@@ -150,7 +185,8 @@ function renderHistory() {
   $("history-status").textContent = `${rows.length} recorded ${rows.length === 1 ? "month" : "months"} · ${monthName(rows[0][0])} – ${monthName(rows.at(-1)[0])}`;
   renderMonthlyChart($("monthly-chart"), rows, $("monthly-tooltip"));
   const insights = monthlyInsights(rows);
-  $("monthly-insights").replaceChildren(element("p", monthlySummary(rows)));
+  const observation = element("p", monthlyDiscovery(selected, rows));
+  $("monthly-insights").replaceChildren(element("span", "Worth noticing", "insight-label"), observation);
   $("additional-monthly-insight").textContent = insights.slice(1).join(" ");
   fillTable("monthly-table", rows.map(([month, incoming, outgoing]) => [monthName(month), money(incoming), money(outgoing)]));
   $("history-note").textContent = `Showing the most recent ${rows.length} available records, up to ${historyWindow}. Accounts may have fewer records or gaps between months. Monthly values come directly from the official source, not from the summary medians.`;
@@ -159,6 +195,7 @@ function renderHistory() {
 async function loadHistory() {
   if (!selected) return;
   const generation = ++historyGeneration;
+  if (historyUnavailable) {historyUnavailable = false;renderDiscovery();}
   $("history-content").hidden = true;
   $("retry-history").hidden = true;
   $("history-status").textContent = "Loading recorded monthly cash flows…";
@@ -172,11 +209,13 @@ async function loadHistory() {
     const histories = await historyPromise;
     if (generation !== historyGeneration || !selected) return;
     selectedHistory = histories.get(selected.account_id);
+    if (allHistories !== histories) {allHistories = histories;evidence = null;renderDiscovery();}
     for (const id of ["history-six", "history-twelve"]) $(id).disabled = false;
     renderHistory();
   } catch (error) {
     if (generation !== historyGeneration) return;
     historyPromise = null;
+    historyUnavailable = true;renderDiscovery();
     $("history-status").textContent = `${error.message} Summary metrics and scenarios remain available. Monthly values have not been invented.`;
     $("retry-history").hidden = false;
   }
@@ -210,7 +249,14 @@ function chooseAccount(accountId) {
     trigger.setAttribute("aria-label", `About ${label}`);
     info.append(trigger, element("p", help));
     heading.append(element("p", label, "metric-label"), info);
-    card.append(heading, value);return card;
+    card.append(heading, value);
+    if (key === "buffer") {
+      const equivalent = bufferEquivalent(profile);
+      const context = element("p", undefined, "buffer-context");context.id = "buffer-context";
+      context.append(element("strong", !equivalent ? "Equivalent unavailable" : equivalent.positive ? `${equivalent.ratio < .05 ? "< 0.1" : "≈ " + new Intl.NumberFormat("en-CA", {maximumFractionDigits: 1}).format(equivalent.ratio)}× monthly spending` : equivalent.label), element("span", "Not runway or total savings."));
+      card.append(context);
+    }
+    return card;
   }));
   $("supporting-metrics").replaceChildren(...[
     ["Typical Fixed Costs", "fixed_costs", "Bills, insurance and loan payments"],
@@ -234,16 +280,27 @@ function chooseAccount(accountId) {
   $("overview-title").tabIndex = -1;$("overview-title").focus({preventScroll: true});
 }
 function renderDiscovery() {
-  const story = datasetStory(profiles);
-  if (!story) {$("story-insight").textContent = "There is insufficient valid data to establish the near-median inflow comparison.";$("story-chart").replaceChildren();return;}
-  $("story-insight").textContent = `${story.groups[1].count} of ${story.sample} accounts with similar typical money in had typical spending above money in.`;
-  renderStoryChart($("story-chart"), story);
-  $("story-method").textContent = `We used ${story.valid.toLocaleString("en-CA")} accounts with valid money-in and spending summaries out of ${story.total.toLocaleString("en-CA")}. The median money in is ${money(story.median)}. The inclusive band is 95%–105% of that median (approximately ${money(story.lower)}–${money(story.upper)}), giving ${story.sample} accounts. We compared each account's unrounded all-history median spending with its unrounded all-history median money in. Percentages use this ${story.sample}-account band as the denominator.`;
-  $("story-buffers").textContent = story.groups.map(group => `${group.label}: median estimated buffer ${money(group.medianBuffer)} (${group.bufferCount} valid buffer estimates among ${group.count} accounts)`).join(". ") + ". These are historical balance estimates, not accessible savings.";
+  evidence ??= discoveryEvidence(profiles, allHistories);
+  const story = evidence.buffers, monthly = evidence.monthly, shock = evidence.shock;
+  const count = value => value.toLocaleString("en-CA");
+  const wholeMoney = value => Number.isFinite(value) ? new Intl.NumberFormat("en-CA", {style: "currency", currency: "CAD", maximumFractionDigits: 0}).format(value) : "Unavailable";
+  $("discovery-monthly-number").textContent = monthly?.observed ? `${count(monthly.withShortfall)} of ${count(monthly.observed)} accounts` : monthly ? "No complete recent pairs" : historyUnavailable ? "Monthly evidence unavailable" : "Monthly evidence loading";
+  $("discovery-monthly-text").textContent = monthly?.observed ? "with typical inflows above spending still had a shortfall month (latest 12 records)." : "Requires recorded monthly cash flows, not inferred values.";
+  $("discovery-buffer-number").textContent = story ? `${wholeMoney(story.groups[0].medianBuffer)} vs ${wholeMoney(story.groups[1].medianBuffer)}` : "Comparison unavailable";
+  $("discovery-buffer-text").textContent = story ? `median buffers across cash-flow groups within ${story.sample} similar-inflow accounts.` : "Valid summary records are needed for this comparison.";
+  $("discovery-shock-text").textContent = `55% income replacement across ${count(shock.count)} accounts. Compare the outcomes →`;
+  if (shock.count) renderStoryChart($("story-chart"), shock);
+  else $("story-chart").replaceChildren(element("p", "No calculable shock outcomes are available."));
+  $("story-method").textContent = story ? `We used ${story.valid.toLocaleString("en-CA")} accounts with valid money-in and spending summaries out of ${story.total.toLocaleString("en-CA")}. The median money in is ${money(story.median)}. The inclusive band is 95%–105% of that median (approximately ${money(story.lower)}–${money(story.upper)}), giving ${story.sample} accounts. We compared each account's unrounded all-history median spending with its unrounded all-history median money in. Percentages use this ${story.sample}-account band as the denominator.` : "No valid summary cohort is available.";
+  $("story-buffers").textContent = story ? story.groups.map(group => `${group.label}: median estimated buffer ${money(group.medianBuffer)} (${group.bufferCount} valid buffer estimates among ${group.count} accounts)`).join(". ") + ". These are historical balance estimates, not accessible savings." : "Missing buffer values are not substituted.";
+  $("discovery-monthly-method").textContent = monthly ? `We selected ${count(monthly.eligible)} accounts with typical money in strictly above typical spending. ${count(monthly.observed)} had at least one complete recent cash-flow pair; ${count(monthly.withShortfall)} had at least one pair with money out above money in. Each account contributes at most its latest 12 recorded rows; these are not necessarily consecutive calendar months. Missing pairs are excluded, never filled with zero.` : "Recent-month evidence requires the history asset; no monthly observations are inferred from summary statistics.";
+  $("discovery-shock-method").textContent = `For every account, we reused the official engine with job loss on, income replacement at 55%, and bills and repair off. ${count(shock.count)} accounts were calculable; ${shock.unknown} were unavailable. The mutually exclusive groups follow the official precedence: non-positive buffer first; otherwise a positive buffer with monthly shortfall; otherwise no monthly shortfall. Numerical runway may be capped at 120. The no-shortfall label is not a guaranteed duration. This is the same scenario, not a comparison of different assumptions.`;
 }
 async function loadProfiles() {
   const generation = ++loadGeneration;
   clearSelection();historyPromise = null;
+  allHistories = null;evidence = null;historyUnavailable = false;
+  document.body.classList.add("is-loading");
   $("load-error").hidden = true;
   $("data-status").textContent = "Loading official accounts…";
   for (const id of ["account-id", "lookup-button", "random-account"]) $(id).disabled = true;
@@ -259,9 +316,11 @@ async function loadProfiles() {
     $("data-status").textContent = `${profiles.size.toLocaleString("en-CA")} official accounts · Ready`;
     $("dataset-detail").textContent = `${payload.dataset.monthly_rows.toLocaleString("en-CA")} monthly records and ${payload.dataset.loan_rows.toLocaleString("en-CA")} loan records, covering ${payload.dataset.first_month} to ${payload.dataset.last_month}. All ${profiles.size.toLocaleString("en-CA")} accounts are supported. Amounts are displayed in CAD, following the challenge dataset units; no currency conversion is applied.`;
     renderDiscovery();
+    document.body.classList.remove("is-loading");
   } catch (error) {
     if (generation !== loadGeneration) return;
     profiles = new Map();$("account-options").replaceChildren();
+    document.body.classList.remove("is-loading");
     $("data-status").textContent = "Account data unavailable";
     $("load-error").hidden = false;
     $("load-error-text").textContent = `${error.message} Check your connection and try again. Missing data is never replaced with sample accounts.`;
@@ -273,11 +332,11 @@ $("reset-scenario").addEventListener("click", resetScenario);
 $("retry-load").addEventListener("click", loadProfiles);
 $("retry-history").addEventListener("click", () => {historyPromise = null;loadHistory();});
 for (const id of ["job-loss", "higher-bills", "emergency-repair", "bill-rate", "repair-cost"]) $(id).addEventListener("input", updateComparison);
-$("ei-rate").addEventListener("input", () => {$("ei-rate-number").value = $("ei-rate").value;updateComparison();});
-$("ei-rate-number").addEventListener("input", () => {
+$("ei-rate").addEventListener("input", event => {$("ei-rate-number").value = $("ei-rate").value;updateComparison(event);});
+$("ei-rate-number").addEventListener("input", event => {
   const input = $("ei-rate-number");
   if (input.value.trim() && input.checkValidity() && Number.isFinite(Number(input.value))) $("ei-rate").value = input.value;
-  updateComparison();
+  updateComparison(event);
 });
 for (const [id, count] of [["history-six", 6], ["history-twelve", 12]]) $(id).addEventListener("click", () => {historyWindow = count;renderHistory();});
 loadProfiles();

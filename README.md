@@ -231,7 +231,51 @@ numbers remain available under **View scenario details**. Zero recorded bills
 are described as a modeling limitation, not evidence of no living expenses.
 Reset, account switching and invalid input clear obsolete results. Comparison
 values are visible directly and keyboard accessible, with no hidden tooltip
-state. Updating an assumption does not auto-scroll or animate the dashboard.
+state. Updating an assumption does not auto-scroll. Optional, short ripple
+feedback links a changed control with the metrics it affects.
+
+## Blue Ripple identity and connected discoveries
+
+The interface uses a restrained blue system: deep blue for key numbers, medium
+blue for comparisons, soft blue for context, and light backgrounds. The brand
+mark uses concentric rings. Shortfall months carry both an outlined circle and
+a background band, with matching accessible descriptions, so meaning does not
+depend on color. A single **Worth noticing** sentence connects typical account
+summaries with actual recent monthly variation.
+
+The buffer context is the descriptive ratio **B / S**, shown as a spending
+equivalent, not official runway or total savings. Non-positive balances and
+missing/zero spending do not produce a fabricated positive equivalent.
+
+Three descriptive findings connect the overview, shock and research sections:
+
+- Of **3,309** accounts with typical inflows strictly above typical spending,
+  **3,299** have at least one complete recorded month with money out above
+  money in in their latest 12 available rows. Gaps are not filled in; this is
+  not a claim about every historical month or a broader customer population.
+- Within the existing **166-account** near-median inflow band, median buffer
+  estimates remain **CAD 30,434.58583333333** versus **CAD 17,689.631666666668**
+  for the spending-covered and spending-above-inflow groups (n=116 and n=50).
+- Applying the same **55% income replacement**, with bills and repair off,
+  gives **23** accounts with no positive buffer, **4,243** with a positive
+  buffer and monthly gap, and **234** with no monthly shortfall. These mutually
+  exclusive groups use the existing official engine and its zero-buffer
+  precedence. No-shortfall is a category, never a 120-month chart duration.
+
+Python independently checked these counts and existing buffer medians against
+the committed official assets and preserved engine. Browser aggregation is
+cached, uses the already-required assets and adds no data downloads. Missing
+observations and unavailable scenarios remain explicit in the method disclosure.
+
+On explicit shock input, a control ring spreads to affected comparison rows
+and, when changed, the runway outcome. Updates are synchronous; only the visual
+feedback is staggered. Feedback lasts at most **480 ms** and is throttled to
+one pulse per **500 ms** during rapid input. Stable comparison rows preserve
+keyboard focus. Reset and account changes clear feedback. Loading rings run
+only while profiles load. CSS and JavaScript both honor `prefers-reduced-motion`;
+changing that preference stops feedback without changing financial behavior.
+No motion is needed to understand values or changes. Browser QA checks these
+states, contrast, mobile layout, loading behavior and input-update timing.
 
 The emergency goal is **3 × typical baseline spending**. Buffer progress uses
 the non-negative remaining scenario buffer, capped visually at the goal. A

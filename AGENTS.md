@@ -48,6 +48,11 @@ credentials or put tokens into tracked files or command URLs.
   live in `public/charts.mjs`. Keep `public/engine.mjs` and Python formulas intact.
 - For substantial UI changes, use the optional isolated Chrome checks in
   `tests/browser/dashboard.mjs`; see README for setup. Check mobile overflow.
+- Brand: restrained blue Ripple palette and concentric-ring mark. Input feedback
+  must be short, optional and disabled for reduced motion; never delay results.
+- Discovery evidence reuses the official engine and actual recent monthly rows.
+  The B/S spending equivalent is descriptive and must not be called runway or
+  total savings. Preserve sample sizes, missing-data notes and source attribution.
 - If calculations or profiles change and source CSVs are available, regenerate
   with `financial_resilience/.venv/bin/python financial_resilience/export_profiles.py`
   and run both `verify_real_data.py` and `verify_web_profiles.py` in that folder.

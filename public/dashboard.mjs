@@ -1,4 +1,5 @@
 // Presentation and planning rules are separate from the official financial engine.
+import {simulate} from "./engine.mjs";
 export const money = value => Number.isFinite(value)
   ? new Intl.NumberFormat("en-CA", {style: "currency", currency: "CAD"}).format(value) : "Unavailable";
 export const monthName = month => new Intl.DateTimeFormat("en-CA", {month: "short", year: "numeric", timeZone: "UTC"}).format(new Date(`${month}-01T00:00:00Z`));
@@ -47,6 +48,47 @@ export function monthlySummary(rows) {
   if (!complete.length) return "No complete monthly cash-flow pairs are available.";
   const count = complete.filter(row => row[2] > row[1]).length;
   return `${count} of ${complete.length} recorded ${complete.length === 1 ? "month" : "months"} had more money out than in.${complete.length < rows.length ? " Incomplete months excluded." : ""}`;
+}
+
+export function monthlyDiscovery(profile, rows) {
+  const complete = rows.filter(row => row.slice(1).every(Number.isFinite));
+  const shortfalls = complete.filter(row => row[2] > row[1]).length;
+  if (Number.isFinite(profile.income) && Number.isFinite(profile.spending) && profile.income > profile.spending && shortfalls) return `Typical money in is higher, yet ${shortfalls} of ${complete.length} recent months had more money out.${complete.length < rows.length ? " Incomplete months excluded." : ""}`;
+  return monthlySummary(rows);
+}
+
+// Descriptive balance/spending ratio, separate from official runway and planning rules.
+export function bufferEquivalent(profile) {
+  if (![profile.buffer, profile.spending].every(Number.isFinite) || profile.spending <= 0) return null;
+  const ratio = profile.buffer / profile.spending;
+  if (!Number.isFinite(ratio)) return null;
+  return {ratio, label: profile.buffer < 0 ? "Below zero" : profile.buffer === 0 ? "No positive buffer" : ratio < .05 ? "Less than 0.1 month" : `≈ ${new Intl.NumberFormat("en-CA", {minimumFractionDigits: 1, maximumFractionDigits: 1}).format(ratio)} months`, positive: profile.buffer > 0};
+}
+
+export function discoveryEvidence(profiles, histories = null) {
+  const buffers = datasetStory(profiles);
+  const monthly = histories ? {eligible: 0, observed: 0, withShortfall: 0} : null;
+  const counts = {depleted: 0, shortfall: 0, no_shortfall: 0};
+  let unknown = 0;
+  for (const profile of profiles.values()) {
+    if (monthly && Number.isFinite(profile.income) && Number.isFinite(profile.spending) && profile.income > profile.spending) {
+      monthly.eligible++;
+      const complete = (histories.get(profile.account_id) ?? []).filter(row => row.slice(1).every(Number.isFinite));
+      if (complete.length) {
+        monthly.observed++;
+        if (complete.some(row => row[2] > row[1])) monthly.withShortfall++;
+      }
+    }
+    try {
+      const result = simulate(profile, {job_loss: true, ei_rate: .55});
+      counts[result.buffer_left <= 0 ? "depleted" : result.no_shortfall ? "no_shortfall" : "shortfall"]++;
+    } catch { unknown++; }
+  }
+  return {monthly, buffers, shock: {count: profiles.size - unknown, unknown, groups: [
+    {key: "depleted", label: "No positive buffer", count: counts.depleted},
+    {key: "shortfall", label: "Buffer with a monthly gap", count: counts.shortfall},
+    {key: "no_shortfall", label: "No monthly shortfall", count: counts.no_shortfall},
+  ]}};
 }
 
 export function runwayHeading(result) {

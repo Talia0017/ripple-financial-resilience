@@ -4,7 +4,7 @@ import {readFile, mkdir} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import path from "node:path";
 import {decodeProfiles, simulate} from "../../public/engine.mjs";
-import {money, monthlySummary, runwayHeading, savingsPlan, comparisonMetrics, scenarioInsight} from "../../public/dashboard.mjs";
+import {money, monthlyDiscovery, runwayHeading, savingsPlan, comparisonMetrics, scenarioInsight, bufferEquivalent} from "../../public/dashboard.mjs";
 
 const {chromium} = await import(process.env.RIPPLE_BROWSER_TEST_MODULE || "playwright");
 const base = process.env.RIPPLE_TEST_URL || "http://127.0.0.1:8502";
@@ -18,9 +18,10 @@ const headers = Object.fromEntries(config.headers[0].headers.map(item => [item.k
 const browser = await chromium.launch({channel: "chrome", headless: true});
 const failures = [];
 let checks = 0;
+let scenarioUpdateMs = null;
 const check = (condition, message) => {assert.ok(condition, message);checks++;};
-async function context(viewport, expectedHttpErrors = false) {
-  const ctx = await browser.newContext({viewport});
+async function context(viewport, expectedHttpErrors = false, reducedMotion = "no-preference") {
+  const ctx = await browser.newContext({viewport, reducedMotion});
   await ctx.route("**/*", async route => {
     const response = await route.fetch();
     await route.fulfill({response, headers: {...response.headers(), ...headers}});
@@ -82,7 +83,11 @@ try {
   check(await page.locator("#monthly-table tr").count() === 6, "Six actual monthly records");
   const actual = history.accounts[profile.account_id].slice(-6);
   check(await page.locator("#monthly-table tr").first().locator("td").first().textContent() === money(actual[0][1]), "Chart table matches source money in");
-  check(await page.locator("#monthly-insights p").first().textContent() === monthlySummary(actual), "Annotation matches exact observed months");
+  check(await page.locator("#monthly-insights p").first().textContent() === monthlyDiscovery(profile, actual), "Annotation matches summary and exact observed months");
+  const shortfallCount = actual.filter(row => row[1] !== null && row[2] !== null && row[2] > row[1]).length;
+  check(await page.locator('#monthly-chart [data-shortfall="true"]').count() === shortfallCount, "Shortfall months have non-color-only markers");
+  check((await page.locator("#buffer-context").textContent()).toLowerCase().includes("not runway"), "Buffer equivalent is not labelled as financial runway");
+  check((await page.locator("#discovery-monthly-number").textContent()).includes("3,299 of 3,309"), "Discovery uses verified recent-month evidence");
   await page.locator("#monthly-chart .chart-point").first().focus();
   check((await page.locator("#monthly-tooltip").textContent()).includes(money(actual[0][1])), "Keyboard chart tooltip");
   await page.locator("#history-twelve").click();
@@ -179,7 +184,7 @@ try {
   const mobile = await context({width: 375, height: 900});
   await ready(mobile.page);await choose(mobile.page, profile);
   await mobile.page.evaluate(() => window.scrollTo(0, 0));
-  check(await mobile.page.locator("#metrics .metric").last().evaluate(item => item.getBoundingClientRect().bottom <= innerHeight), "Three primary metrics fit the selected mobile viewport");
+  check(await mobile.page.locator('#metrics .metric>strong').last().evaluate(item => item.getBoundingClientRect().bottom <= innerHeight), "Three primary values fit the selected mobile viewport");
   check(await mobile.page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize) >= 16), "Comfortable base text size");
   await mobile.page.screenshot({path: path.join(screenshots, "mobile-overview.png")});
   await mobile.page.screenshot({path: path.join(screenshots, "mobile-full.png"), fullPage: true});
@@ -193,10 +198,12 @@ try {
   await ready(recovery.page);
   await recovery.page.locator("#account-id").fill(profile.account_id);await recovery.page.locator("#lookup-button").click();
   await recovery.page.locator("#retry-history").waitFor();
+  check(await recovery.page.locator("#discovery-monthly-number").textContent() === "Monthly evidence unavailable", "Failed monthly data does not leave a loading claim or invented discovery");
   await recovery.page.locator("#job-loss").check();
   check(await recovery.page.locator("#comparison").isVisible(), "History failure preserves scenarios");
   await recovery.ctx.unroute("**/data/history.json");await recovery.page.locator("#retry-history").click();await recovery.page.locator("#history-content").waitFor();
   check(await recovery.page.locator("#monthly-table tr").count() === 6, "History retry recovers");
+  check((await recovery.page.locator("#discovery-monthly-number").textContent()).includes("3,299 of 3,309"), "Retry restores verified discovery evidence");
   await recovery.ctx.close();
   const loading = await context({width: 1100, height: 900}, true);
   await loading.ctx.route("**/data/profiles.json", route => route.fulfill({status: 503, body: "unavailable"}));
@@ -223,6 +230,45 @@ try {
   await missing.page.locator("#job-loss").check();
   check(await missing.page.locator("#comparison").isVisible(), "Other shocks work without household bills");
   await missing.ctx.close();
+  const motion = await context({width: 1100, height: 900}, false, "no-preference");
+  await ready(motion.page);await choose(motion.page, profile);
+  const pulse = await motion.page.evaluate(() => {
+    const started = performance.now();
+    document.getElementById("job-loss").click();
+    const animations = document.getAnimations().filter(item => ["drop-ring", "impact-spread"].includes(item.animationName));
+    return {updateMs: performance.now() - started, names: animations.map(item => item.animationName), duration: Math.max(...animations.map(item => {const timing = item.effect.getTiming();return timing.duration + timing.delay;})), runway: document.getElementById("after-runway").textContent};
+  });
+  scenarioUpdateMs = pulse.updateMs;
+  check(pulse.names.includes("drop-ring") && pulse.names.includes("impact-spread"), "A selected shock produces a subtle control-to-impact ripple");
+  check(pulse.duration <= 500 && pulse.updateMs < 200 && pulse.runway === runwayHeading(simulate(profile, {job_loss: true})), "Results update immediately and ripple feedback lasts at most 500 ms");
+  check(await motion.page.evaluate(() => {
+    document.body.classList.add("is-loading");
+    const active = document.getAnimations().some(item => item.animationName === "loading-ring");
+    document.body.classList.remove("is-loading");return active;
+  }), "Loading ring appears only in the loading state");
+  const savedNode = await motion.page.locator('.comparison-metric[data-metric="income"]').evaluate(item => {item.dataset.focusProbe = "retained";return true;});
+  await motion.page.locator("#ei-rate-number").fill("80");
+  check(savedNode && await motion.page.locator('.comparison-metric[data-metric="income"]').getAttribute("data-focus-probe") === "retained", "Comparison rows remain stable during updates");
+  await motion.page.emulateMedia({reducedMotion: "reduce"});
+  await motion.page.locator("#ei-rate-number").fill("65");
+  check(await motion.page.evaluate(() => document.getAnimations().filter(item => ["drop-ring", "impact-spread", "loading-ring"].includes(item.animationName)).length === 0), "Reduced motion disables all ripple and loading animations");
+  check(await motion.page.locator("#after-runway").textContent() === runwayHeading(simulate(profile, {job_loss: true, ei_rate: .65})), "Reduced motion preserves immediate scenario calculations");
+  check(await motion.page.locator(".ripple-source, .ripple-impact").count() === 0, "Changing motion preference cleans up active feedback");
+  check(await motion.page.evaluate(() => {
+    document.body.classList.add("is-loading");
+    const count = document.getAnimations().filter(item => item.animationName === "loading-ring").length;
+    document.body.classList.remove("is-loading");return count === 0;
+  }), "Reduced motion also disables loading rings");
+  const contrast = await motion.page.evaluate(() => {
+    const rgb = value => value.match(/[\d.]+/g).slice(0,3).map(Number);
+    const luminance = value => rgb(value).map(channel => {const part = channel/255;return part <= .04045 ? part/12.92 : ((part+.055)/1.055)**2.4;}).reduce((sum,part,index) => sum+part*[.2126,.7152,.0722][index],0);
+    const ratio = (a,b) => {const values = [luminance(a),luminance(b)].sort((x,y)=>y-x);return (values[0]+.05)/(values[1]+.05);};
+    const button = getComputedStyle(document.getElementById("lookup-button"));
+    const root = getComputedStyle(document.documentElement);
+    return {button: ratio(button.color,button.backgroundColor), body: ratio(root.color,root.backgroundColor)};
+  });
+  check(contrast.button >= 4.5 && contrast.body >= 4.5, "Blue primary button and body text meet WCAG AA contrast");
+  await motion.ctx.close();
   assert.deepEqual(failures, [], "No unexpected JavaScript or CSP errors");
-  console.log(JSON.stringify({browser: "Chrome", checks, javascriptErrors: failures, screenshots, result: "passed"}, null, 2));
+  console.log(JSON.stringify({browser: "Chrome", checks, scenarioUpdateMs, javascriptErrors: failures, screenshots, result: "passed"}, null, 2));
 } finally {await browser.close();}
