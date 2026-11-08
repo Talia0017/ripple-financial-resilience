@@ -89,9 +89,8 @@ try {
   await page.locator("#about-data>summary").focus();await page.keyboard.press("Enter");
   check(await page.locator("#dataset-detail").isVisible(), "Source information available by keyboard");
   await page.keyboard.press("Enter");
-  await page.locator("#show-research-method").click();
-  check(await page.locator("#about-data").evaluate(item => item.open) && await page.locator("#research-method").evaluate(item => item === document.activeElement), "Research link reveals and focuses its method");
-  await page.locator("#about-data>summary").click();
+  check(await page.locator(".discovery, #story-chart").count() === 0, "Population research is absent from the customer dashboard");
+  check((await page.locator("#research-documentation").getAttribute("href")).endsWith("/RESEARCH.md"), "Research methodology remains linked in project documentation");
   check(await page.locator("#baseline-runway").textContent() === runwayHeading(simulate(profile)), "Baseline uses official engine");
   check(await page.locator("#monthly-table tr").count() === 6, "Six actual monthly records");
   const actual = history.accounts[profile.account_id].slice(-6);
@@ -100,7 +99,7 @@ try {
   const shortfallCount = actual.filter(row => row[1] !== null && row[2] !== null && row[2] > row[1]).length;
   check(await page.locator('#monthly-chart [data-shortfall="true"]').count() === shortfallCount, "Shortfall months have non-color-only markers");
   check((await page.locator("#buffer-context").textContent()).toLowerCase().includes("not runway"), "Buffer equivalent is not labelled as financial runway");
-  check((await page.locator("#discovery-monthly-number").textContent()).includes("3,299 of 3,309"), "Discovery uses verified recent-month evidence");
+  check((await readFile(new URL("../../RESEARCH.md", import.meta.url), "utf8")).includes("3,299"), "Verified recent-month findings are preserved outside the personal UI");
   await page.locator("#monthly-chart .chart-point").first().focus();
   check((await page.locator("#monthly-tooltip").textContent()).includes(money(actual[0][1])), "Keyboard chart tooltip");
   await page.locator("#history-twelve").click();
@@ -121,7 +120,7 @@ try {
       check((await item.getAttribute("class")).includes(row.changed ? "is-changed" : "is-unchanged"), "Emphasis follows numeric changes");
       check((await item.locator(".comparison-change").textContent()).includes(row.change), "Detailed comparison retains its signed difference");
       const compact = page.locator(`#scenario-changes [data-metric="${row.key}"]`);
-      check(await compact.isVisible() === row.changed && (await compact.textContent()).includes(row.change), "Compact comparison reveals exact affected metrics and signed differences");
+      check(row.changed ? await compact.isVisible() && (await compact.textContent()).includes(row.change) : await compact.count() === 0, "Visible bars reveal only affected metrics and exact signed differences");
     }
   }
   await page.locator("#ei-rate").fill("80");await page.locator("#bill-rate").fill("50");await page.locator("#repair-cost").fill("1234");
@@ -129,7 +128,7 @@ try {
   check(await page.locator("#after-runway").textContent() === runwayHeading(result), "Adjusted combined scenario");
   if (result.monthly_shortfall === 0 && simulate(profile).monthly_shortfall === 0) check(await page.locator('.comparison-metric[data-metric="monthly_shortfall"] .bar-before, .comparison-metric[data-metric="monthly_shortfall"] .bar-after').count() === 0, "True zero values have no filled bars");
   const insight = scenarioInsight(profile, simulate(profile), result, {job_loss: true, ei_rate: .8, higher_bills: true, bill_increase_rate: .5, emergency_repair: true});
-  check(await page.locator("#result-explanation").textContent() === insight.primary && await page.locator("#result-supporting").textContent() === insight.supporting, "Combined insight matches the current scenario");
+  check(await page.locator("#result-cause").textContent() === insight.primary && await page.locator("#result-supporting").textContent() === insight.supporting, "Combined insight matches the current scenario");
   check((await page.locator("#scenario-contributors").textContent()).includes(money(result.one_off_costs)), "One-off contribution available on demand");
   check(await page.locator("#ei-rate-number").inputValue() === "80", "Slider updates numeric replacement input");
   await page.locator("#ei-rate-number").fill("65");
@@ -143,7 +142,6 @@ try {
   check(await page.locator("#ei-rate-number").inputValue() === "66", "Replacement slider supports keyboard changes");
   check(Math.abs(await page.evaluate(() => scrollY) - scrollPosition) < 1, "Changing a parameter does not auto-scroll");
   await page.locator("#ei-rate").fill("80");
-  await page.locator("#before-after-details>summary").click();
   await page.locator('.comparison-metric[data-metric="income"]').focus();
   check((await page.locator('.comparison-metric[data-metric="income"]').getAttribute("aria-label")).includes("historical baseline"), "Keyboard exposes comparison values without a tooltip");
   check(await page.locator("#comparison-tooltip").count() === 0, "No hidden stale comparison tooltip");
@@ -187,7 +185,7 @@ try {
     check(await page.locator("#comparison").isHidden() && !await page.locator("#job-loss").isChecked(), "Account switching resets scenario state");
     await page.locator("#higher-bills").check();
     check(await page.locator("#after-runway").textContent() === runwayHeading(simulate(edge, {higher_bills: true})), "Real account edge case");
-    if (edge.household_bills === 0) check((await page.locator("#result-explanation").textContent()).includes("recorded household bills are $0.00"), "Zero bills explain no modeled effect");
+    if (edge.household_bills === 0) check((await page.locator("#result-cause").textContent()).includes("recorded household bills are $0.00"), "Zero bills explain no modeled effect");
   }
   for (const index of [19, 927, 3441]) await choose(page, all[index]);
   await page.locator("#account-id").fill("not-an-official-account");await page.locator("#lookup-button").click();
@@ -220,12 +218,13 @@ try {
   await ready(recovery.page);
   await recovery.page.locator("#account-id").fill(profile.account_id);await recovery.page.locator("#lookup-button").click();
   await recovery.page.locator("#retry-history").waitFor();
-  check(await recovery.page.locator("#discovery-monthly-number").textContent() === "Monthly evidence unavailable", "Failed monthly data does not leave a loading claim or invented discovery");
+  check((await recovery.page.locator("#history-status").textContent()).includes("could not be loaded") && await recovery.page.locator("#monthly-chart svg").count() === 0, "Failed monthly data does not leave a chart or invented personal insight");
+  await recovery.page.locator("#explore-change").click();
   await recovery.page.locator("#job-loss").check();
   check(await recovery.page.locator("#comparison").isVisible(), "History failure preserves scenarios");
   await recovery.ctx.unroute("**/data/history.json");await recovery.page.locator("#retry-history").click();await recovery.page.locator("#history-content").waitFor();
   check(await recovery.page.locator("#monthly-table tr").count() === 6, "History retry recovers");
-  check((await recovery.page.locator("#discovery-monthly-number").textContent()).includes("3,299 of 3,309"), "Retry restores verified discovery evidence");
+  check(await recovery.page.locator("#monthly-insights p").textContent() === monthlyDiscovery(profile, history.accounts[profile.account_id].slice(-6)), "Retry restores the selected account’s actual monthly insight");
   await recovery.ctx.close();
   const loading = await context({width: 1100, height: 900}, true);
   await loading.ctx.route("**/data/profiles.json", route => route.fulfill({status: 503, body: "unavailable"}));

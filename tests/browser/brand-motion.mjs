@@ -25,21 +25,20 @@ try{
    const root=getComputedStyle(document.documentElement),white="rgb(255,255,255)";
    return {brand:root.getPropertyValue("--brand").trim(),accent:root.getPropertyValue("--accent").trim(),in:style(".bar-in").fill,out:style(".bar-out").fill,button:contrast(style("#lookup-button").color,style("#lookup-button").backgroundColor),body:contrast(root.color,root.backgroundColor),muted:contrast(style(".lead").color,root.backgroundColor),heading:contrast(style("h2").color,white),limeEdge:contrast(style(".bar-out").stroke,white),limeInk:contrast(root.getPropertyValue("--accent-ink"),root.getPropertyValue("--accent"))};
   });
-  check(palette.brand==="#3D38F5"&&palette.accent==="#AED904","Brand tokens use the requested exact colors");
-  check(palette.in==="rgb(61, 56, 245)"&&palette.out==="rgb(174, 217, 4)","Cash-flow bars consistently distinguish money in and money out");
+  check(palette.brand==="#3D38F5"&&palette.accent==="#C2EE14","Brand tokens use the requested exact colors");
+  check(palette.in==="rgb(61, 56, 245)"&&palette.out==="rgb(194, 238, 20)","Cash-flow bars consistently distinguish money in and money out");
   for(const key of ["button","body","muted","heading","limeInk"])check(palette[key]>=4.5,`${key} text meets WCAG AA contrast`);
   check(palette.limeEdge>=3,"Lime graphics have a visible boundary against the white plot");reports.push({width,...palette});
   await page.locator("#explore-change").click();
   check(await page.locator('nav a[href="#shock-title"]').getAttribute("aria-current")==="location","Active workspace navigation uses an accessible current state");
   await page.locator("#job-loss").check();
   check(await page.locator("#after-runway").textContent()===runwayHeading(simulate(profiles.get("39859"),{job_loss:true})),"Scenario updates immediately using the preserved financial engine");
-  const delta=await page.locator(".scenario-difference").first().evaluate(item=>({color:getComputedStyle(item).color,background:getComputedStyle(item).backgroundColor}));
-  check(delta.color==="rgb(48, 59, 11)"&&delta.background==="rgb(174, 217, 4)","Changed amounts use readable dark text on the lime accent");
-  await page.locator("#before-after-details>summary").click();
+  const delta=await page.locator(".is-changed .comparison-change dd").first().evaluate(item=>({color:getComputedStyle(item).color,background:getComputedStyle(item).backgroundColor}));
+  check(delta.color==="rgb(48, 59, 11)"&&delta.background==="rgb(194, 238, 20)","Changed amounts use readable dark text on the lime accent");
   await page.waitForFunction(()=>document.querySelector(".comparison-after .pair-bar.is-flowing"));
   check(await page.locator(".comparison-before .water-sheen").count()===0,"Original values never acquire simulated water motion");
   const colors=await page.locator(".comparison-after .bar-after").first().evaluate(item=>({fill:getComputedStyle(item).fill,stroke:getComputedStyle(item).stroke}));
-  check(colors.fill==="rgb(174, 217, 4)","After bars use the simulated-state accent");
+  check(colors.fill==="rgb(194, 238, 20)","After bars use the simulated-state accent");
   check(await page.locator(".comparison-after .pair-bar").first().evaluate(svg=>{
    const bar=svg.querySelector(".bar-after"),clip=svg.querySelector("clipPath rect");return bar.getAttribute("x")===clip.getAttribute("x")&&bar.getAttribute("width")===clip.getAttribute("width");
   }),"The water surface is clipped to the exact filled amount");
@@ -54,7 +53,6 @@ try{
   await page.waitForFunction(()=>document.querySelector('.comparison-metric[data-metric="income"] .is-flowing'));
   check(await page.locator('.comparison-metric[data-metric="spending"] .is-flowing, .comparison-metric[data-metric="buffer_left"] .is-flowing').count()===0,"Changing income sends water feedback only through affected financial bars");
   await page.waitForFunction(()=>!document.querySelector(".is-flowing"));
-  await page.locator("#before-after-details>summary").click();
   await page.locator("#full-plan-details>summary").click();
   await page.waitForFunction(()=>document.querySelector("#goal-water .is-flowing"));
   const plan=savingsPlan(profiles.get("39859"),simulate(profiles.get("39859"),{job_loss:true,ei_rate:.8}));

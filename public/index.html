@@ -28,12 +28,11 @@
     </section>
     <div id="empty-state" class="empty-state"><h2>Start with an account.</h2><p>Search an ID or choose a random account to see its finances.</p></div>
     <div id="dashboard" hidden>
-      <section id="overview" aria-labelledby="overview-title">
+      <div class="financial-workspace">
+      <section id="overview" class="baseline-context" aria-labelledby="overview-title">
         <div class="section-heading"><h2 id="overview-title">Your Financial Overview</h2><div class="account-context"><span id="selected-account" class="account-badge"></span><p id="account-history" class="muted"></p></div></div>
         <div id="data-warnings" aria-live="polite"></div>
         <div class="metrics" id="metrics"></div>
-        <div class="financial-workspace">
-          <div class="baseline-context">
         <div class="baseline"><span>Baseline Financial Runway</span><strong id="baseline-runway"></strong><span class="sr-only">Historical estimate</span></div>
         <article class="cashflow-panel" aria-labelledby="cashflow-title">
           <div class="chart-heading"><h3 id="cashflow-title">Monthly Cash Flow</h3><div class="segmented" role="group" aria-label="Recorded history window"><button id="history-six" type="button" aria-pressed="true">6 months</button><button id="history-twelve" type="button" aria-pressed="false">12 months</button></div></div>
@@ -41,6 +40,7 @@
           <div id="history-content" hidden><div class="chart-viewport" tabindex="0" aria-label="Monthly cash-flow chart; the twelve-month view scrolls on smaller screens"><div id="monthly-chart"></div></div><p id="monthly-tooltip" class="chart-tooltip" hidden></p><div id="monthly-insights" class="insights"></div></div>
           <button id="retry-history" class="secondary" type="button" hidden>Retry monthly history</button>
         </article>
+        <div class="overview-actions">
             <button id="explore-change" class="text-button explore-change" type="button" aria-controls="scenario-workspace">Explore a Change <span aria-hidden="true">→</span></button>
         <details id="financial-details" class="financial-details"><summary>More Financial Details</summary>
           <dl id="supporting-metrics" class="supporting-metrics"></dl>
@@ -48,7 +48,8 @@
           <h3>Recorded monthly amounts</h3><p id="history-note"></p><p id="additional-monthly-insight"></p>
           <div class="table-wrap"><table><caption>Recorded cash flows · CAD</caption><thead><tr><th scope="col">Month</th><th scope="col">Money In</th><th scope="col">Money Out</th></tr></thead><tbody id="monthly-table"></tbody></table></div>
         </details>
-          </div>
+        </div>
+      </section>
           <details id="scenario-workspace" class="scenario-workspace" open>
             <summary><h3 id="shock-title">Explore a Change <span class="panel-toggle" aria-hidden="true">+</span></h3></summary>
             <div id="scenario-content" class="shock-section">
@@ -61,46 +62,46 @@
         </fieldset>
         <div class="scenario-parameters">
           <div id="job-settings" class="shock-assumption" hidden><label for="ei-rate">Income Replacement</label><output id="ei-output" for="ei-rate ei-rate-number" class="sr-only">55%</output><div class="replacement-controls"><input id="ei-rate" type="range" aria-label="Income replacement slider" min="0" max="100" step="1" value="55" disabled><div class="percentage-input"><input id="ei-rate-number" aria-label="Income replacement percentage" type="number" min="0" max="100" step="1" value="55" disabled><span aria-hidden="true">%</span></div></div></div>
-          <div id="bill-settings" class="shock-assumption" hidden><label for="bill-rate">Household Bills Increase (%)</label><input id="bill-rate" type="number" min="0" step="any" value="15" disabled></div>
+          <div id="bill-settings" class="shock-assumption" hidden><label for="bill-rate">Bills Increase (%)</label><input id="bill-rate" type="number" min="0" step="any" value="15" disabled></div>
           <div id="repair-settings" class="shock-assumption" hidden><label for="repair-cost">Emergency Cost (CAD)</label><input id="repair-cost" type="number" min="0" step="any" value="0" disabled></div>
         </div>
         <p id="scenario-error" class="notice error" role="alert" hidden></p>
         <p id="scenario-invitation" class="scenario-invitation">Choose a financial change to explore its impact.</p>
               <div id="comparison" class="comparison" aria-labelledby="comparison-title" hidden>
-                <div class="outcome"><div><h3 id="comparison-title">Estimated Financial Runway</h3><strong id="after-runway" class="runway-value"></strong><p class="runway-note">Simplified estimate, not a forecast.</p></div><span id="scenario-state" class="state-badge"></span></div>
+                <div class="outcome"><div><h3 id="comparison-title">Estimated Financial Runway</h3><strong id="after-runway" class="runway-value"></strong><p id="runway-baseline" class="runway-baseline"></p><p class="runway-note">Estimate, not a forecast.</p></div><span id="scenario-state" class="state-badge sr-only"></span></div>
+              <div id="scenario-breakdown" hidden>
+                <p id="comparison-scale" class="comparison-scale">CAD · Each Before/After pair shares its own scale.</p>
+                <div id="scenario-changes"><div id="comparison-chart" role="group" aria-label="Changed financial amounts: Before, After and Change" aria-describedby="comparison-scale"></div></div>
+              </div>
                 <div id="scenario-insight" class="scenario-insight" aria-live="polite" aria-atomic="true"><p id="result-explanation"></p></div>
               </div>
               <section id="next-step" class="next-step" aria-labelledby="plan-title">
                 <div class="next-step-heading"><h3 id="plan-title">Your Next Step</h3><span id="plan-context" class="muted">Historical baseline · Illustrative</span></div>
                 <div id="next-step-message" aria-live="polite" aria-atomic="true"><p id="next-step-title"></p><p id="next-step-text"></p></div>
-                <details id="full-plan-details"><summary>View Full Plan<span class="sr-only">: Goal Plan and Backup Plan</span></summary>
-        <div class="plan-grid">
+              </section>
+              <div id="scenario-secondary">
+                <details id="full-plan-details" name="scenario-secondary"><summary>View Full Plan<span class="sr-only">: Goal Plan and Backup Plan</span></summary>
+        <div class="plan-grid secondary-scroll" tabindex="0" role="region" aria-label="Full Goal Plan and Backup Plan">
           <article class="plan-card"><h3>Goal Plan</h3><div id="savings-plan"><p id="goal-summary" class="plan-key"></p><p id="goal-caption" class="muted"></p><span class="goal-meter"><progress id="goal-progress" class="goal-progress" max="1" value="0" aria-label="Scenario buffer toward the three-month spending goal"></progress><span id="goal-water" class="goal-water" aria-hidden="true"></span></span><details id="goal-plan-details"><summary>View Plan<span class="sr-only">: Emergency Savings Goal</span></summary><div id="goal-plan-content"></div></details></div></article>
           <article class="plan-card"><h3>Backup Plan</h3><p id="backup-summary" class="plan-key backup-key"></p><p id="backup-caption" class="muted"></p><details id="backup-plan-details"><summary>View Plan<span class="sr-only">: Backup Plan</span></summary><ol id="backup-plan" class="backup-list"></ol></details></article>
         </div>
                 </details>
-              </section>
-              <div id="scenario-breakdown" hidden>
-                <p class="comparison-key">Historical baseline → Hypothetical scenario · CAD</p>
-                <dl id="scenario-changes" aria-label="Changes from historical baseline"></dl>
-                <details id="before-after-details" class="chart-details"><summary>View Before/After Details</summary>
-                  <div class="legend"><span><i class="key before" aria-hidden="true"></i>Before · Historical baseline</span><span><i class="key after" aria-hidden="true"></i>After · Hypothetical scenario</span></div>
-                  <p id="comparison-scale" class="comparison-scale">CAD · Compare bars within each row.</p>
-                  <div id="comparison-chart" role="group" aria-label="Before, After and Change" aria-describedby="comparison-scale"></div>
-                  <details id="comparison-details" class="chart-details"><summary>View scenario details</summary><p id="result-supporting" hidden></p><ul id="scenario-contributors"></ul><p id="runway-explanation"></p><p>Each metric's Before/After pair shares a scale; scales differ across rows. Changes use full-precision values. Rounding amounts and changes separately can produce a one-cent difference from subtracting the displayed amounts.</p><div class="table-wrap"><table><caption>Baseline and scenario · amounts in CAD</caption><thead><tr><th scope="col">Metric</th><th scope="col">Before</th><th scope="col">After</th></tr></thead><tbody id="comparison-body"></tbody></table></div></details>
+                <details id="before-after-details" class="chart-details" name="scenario-secondary"><summary>Unchanged Values &amp; Scenario Details</summary>
+                  <div class="secondary-scroll" tabindex="0" role="region" aria-label="Unchanged values and scenario methodology">
+                    <div id="unchanged-comparison" role="group" aria-label="Unchanged baseline and scenario amounts"></div>
+                  <details id="comparison-details" class="chart-details"><summary>View scenario details</summary><p id="result-cause"></p><p id="result-supporting" hidden></p><ul id="scenario-contributors"></ul><p id="runway-explanation"></p><p>Each metric's Before/After pair shares a scale; scales differ across rows. Changes use full-precision values. Rounding amounts and changes separately can produce a one-cent difference from subtracting the displayed amounts.</p><div class="table-wrap"><table><caption>Baseline and scenario · amounts in CAD</caption><thead><tr><th scope="col">Metric</th><th scope="col">Before</th><th scope="col">After</th></tr></thead><tbody id="comparison-body"></tbody></table></div></details>
+                  </div>
                 </details>
               </div>
             </div>
           </details>
-        </div>
-      </section>
-      <section class="discovery" aria-labelledby="discovery-title"><div><h2 id="discovery-title">What We Discovered</h2><ol class="discovery-takeaways"><li><strong id="discovery-monthly-number"></strong><span id="discovery-monthly-text"></span></li><li><strong id="discovery-buffer-number"></strong><span id="discovery-buffer-text"></span></li><li><strong>One shock, different outcomes.</strong><span id="discovery-shock-text"></span></li></ol><button id="show-research-method" type="button" class="text-button">Research method &amp; limits</button></div><div class="discovery-visual"><h3>Same 55% income replacement</h3><div id="story-chart" class="chart-viewport"></div><a class="discovery-link" href="#shock-title">Explore a shock ↑</a></div></section>
+      </div>
     </div>
     <section class="explanations"><details id="about-data"><summary>About the Data &amp; Calculations</summary><div class="about-content"><h3>What do these financial figures mean?</h3><dl><dt>I · Typical monthly money in</dt><dd>Median money_in across all available months. This includes all money entering the account, not necessarily salary. All displayed amounts are in CAD, following the challenge dataset units.</dd><dt>S · Typical monthly spending</dt><dd>Median money_out, including loan payments.</dd><dt>F · Typical fixed costs</dt><dd>Add household_bills + insurance + loan_payments within each month, then take the median of those totals. This is not the sum of three separate medians.</dd><dt>B · Estimated cash buffer</dt><dd>Mean avg_daily_balance across the last six monthly rows, sorted by month. Use available rows if fewer than six exist and disclose the limitation. This historical estimate is not a live available balance.</dd><dt>H · Household bills</dt><dd>Median household_bills. Zero recorded bills do not establish that an account holder has no living expenses.</dd><dt>P · Loan payment</dt><dd>Total monthly_payment for loans started by 2025-12-31 with status C/D. A/B and accounts with no matching loans contribute zero. Unavailable loan data remains unknown. P and F are not added to S again.</dd></dl><p>The median is the middle value after sorting; with an even number of values, use the average of the two middle values. Missing amounts are not replaced with zero. Relevant statistics use valid records and disclose limitations. B never uses older rows outside its six-row window to replace missing values.</p><h3>Official runway formula and model limits</h3><div class="formula-block"><p>buffer_left = B − one_off_costs</p><p>gap = spending_after − income_after</p><p>1. If buffer_left ≤ 0 → 0 months</p><p>2. Otherwise, if gap ≤ 0 → No shortfall (120+)</p><p>3. Otherwise → min(buffer_left / gap, 120)</p></div><p>“No shortfall (120+)” is the official judging label for no monthly shortfall under the current assumptions. It does not guarantee financial security for the next 120 months. A depleted buffer gives a runway of zero, even when income covers monthly spending.</p><p>The model does not verify EI eligibility, payment caps or benefit duration. It does not project taxes, interest, inflation or changes in behaviour, and is not a month-by-month cash-flow forecast. Planning uses separate, illustrative Ripple assumptions; it does not change these official rules.</p><h3>Data sources and verification</h3><p>The official monthly_summary.csv and loans.csv challenge datasets were provided by Sheridan Datathon 2026 — Tangerine Track. The project owner confirmed with the organizers that they may be publicly used and contain no real customer records.</p><p id="dataset-detail">Loading dataset information.</p><p>The website uses full-precision, precomputed profiles and does not depend on files on the developer's computer. All shocks are calculated in your browser. A separate compact asset includes each account’s most recent 12 recorded monthly money-in and money-out values. No missing months are invented. The full monthly ledger remains local.</p><a href="https://github.com/Talia0017/ripple-financial-resilience" target="_blank" rel="noopener noreferrer">View source code, dataset attribution and tests ↗</a>
 <h3>Scenario assumptions</h3>
 <ul><li>Job loss: monthly money in = I × EI replacement rate (default 55%). This applies to all inflows, not verified salary. Actual EI eligibility, caps and duration are not established.</li><li>Higher bills: monthly spending = S + H × bill increase (default 15%). Only recorded household bills increase. Zero recorded bills do not mean no living expenses.</li><li>Emergency repair: subtract the cost once from B. The initial cost equals typical spending S. It is not a recurring expense.</li></ul>
 <h3>Ripple planning assumptions</h3><p>The example goal is three months of typical baseline spending, separate from official Tangerine formulas. Available buffer is max(scenario buffer, 0). Remaining target is max(goal − available buffer, 0). The example contribution is 50% of positive scenario surplus, limited to the remaining target. Time to goal is rounded up to whole months. No positive surplus means no suggested contribution or date. A met goal needs no further contribution. Missing or non-positive spending makes this example unavailable.</p><p>Timing assumes unchanged cash flow, no interest and no further shocks. A historical balance is not proof of accessible savings, and estimated surplus is not a personal affordability assessment. Backup steps identify calculated gaps and one-time costs; they do not establish reducible expenses, borrowing capacity or benefit eligibility.</p>
-<h3 id="research-method">How we checked the dataset findings</h3><p id="story-method"></p><p id="story-buffers"></p><p id="discovery-monthly-method"></p><p id="discovery-shock-method"></p><p>The buffer-to-spending equivalent divides the historical buffer estimate B by typical spending S. It does not subtract incoming money, model future cash flow or calculate official runway. Negative or missing balances are not treated as spendable savings.</p><p>This is a descriptive comparison of challenge accounts, not evidence of cause, a population estimate or a prediction. Different record lengths and timing can affect these summaries. Medians of money in and money out may come from different months.</p>
+<p><a id="research-documentation" href="https://github.com/Talia0017/ripple-financial-resilience/blob/main/RESEARCH.md" target="_blank" rel="noopener noreferrer">Datathon research and methodology ↗</a></p>
 </div></details></section>
   </main>
   <footer><span class="brand">Ripple</span><p>Sheridan Datathon 2026 · Tangerine Track</p><small>AI-assisted development disclosed in README.</small></footer>

@@ -49,12 +49,13 @@ credentials or put tokens into tracked files or command URLs.
 - For substantial UI changes, use the optional isolated Chrome checks in
   `tests/browser/dashboard.mjs`, `tests/browser/chart-layout.mjs` and
   `tests/browser/connected-workspace.mjs`, plus `tests/browser/brand-motion.mjs`
-  for color or animation changes; see README
+  for color or animation changes and `tests/browser/personal-dashboard.mjs`
+  for the personal workspace; see README
   for setup. Check account switching, 6/12-month geometry and mobile overflow.
 - Measure charts after revealing their content, using the visible cash-flow
   panel. Preserve explicit monthly plot heights (260px desktop, 240px mobile)
   and matching SVG coordinates; never magnify a hidden plot's fallback width.
-- Brand: #3D38F5 for identity and historical context; #AED904 for money out,
+- Brand: #3D38F5 for identity and historical context; #C2EE14 for money out,
   simulated states and differences. Use neutral surfaces, dark body text and
   dark outlines on lime chart bars. Lime does not mean a favorable outcome.
   The SVG mark uses a drop and three open perspective waves.
@@ -62,13 +63,18 @@ credentials or put tokens into tracked files or command URLs.
   180ms idle. Filled After bars and savings progress can show a finite 1200ms
   water surface on relevant changes or disclosure. Never loop it, animate a
   financial amount, delay calculations or bypass reduced-motion preferences.
-- Keep one connected account workspace: primary historical metrics above a
-  desktop cash-flow/scenario pair, with next-step guidance and expandable full
-  plans directly after the outcome. Narrow screens use a scenario disclosure
+- Keep one connected account workspace: historical metrics and cash flow in the
+  left overview; controls, runway, immediate changed-only Before/After bars and
+  the next step on the right. Use available desktop width with modest gutters,
+  not a narrow fixed center column. Full plans and unchanged values stay in secondary disclosures;
+  only their desktop overflow may scroll independently. Primary results never
+  belong in a nested scroll region. Screens up to 1100px use a scenario disclosure
   and compact historical context. Exploration must never infer or select shocks.
 - Next-step copy reuses existing savings and backup results; it must not hide a
   monthly gap behind a met savings target or retain advice after invalid input.
-- Discovery evidence reuses the official engine and actual recent monthly rows.
+- Population research belongs in RESEARCH.md and README, not the customer UI.
+  Preserve its calculation helpers, verified findings and existing research tests.
+  Personal insights reuse actual recent monthly rows and selected account values.
   The B/S spending equivalent is descriptive and must not be called runway or
   total savings. Preserve sample sizes, missing-data notes and source attribution.
 - If calculations or profiles change and source CSVs are available, regenerate

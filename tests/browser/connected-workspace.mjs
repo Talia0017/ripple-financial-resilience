@@ -39,12 +39,12 @@ async function verify(page,person,options={}) {
   return after;
 }
 try {
-  for(const [width,height] of [[1440,900],[1366,768],[768,1000],[375,900],[320,900]]) {
+  for(const [width,height] of [[1440,900],[1536,864],[1366,768],[768,1000],[375,900],[320,900]]) {
     const ctx=await browser.newContext({viewport:{width,height},reducedMotion:"reduce",hasTouch:width<800});
     const page=await ctx.newPage();page.on("pageerror",error=>errors.push(error.message));
     await page.goto(base);await page.waitForFunction(()=>!document.getElementById("lookup-button").disabled);
     const person=profiles.get("39859");await choose(page,person.account_id);
-    check(await page.locator("#scenario-workspace").evaluate(item=>item.open)===(width>1000),"Desktop opens the workspace; narrow screens start with an accessible compact disclosure");
+    check(await page.locator("#scenario-workspace").evaluate(item=>item.open)===(width>1100),"Desktop opens the workspace; narrow screens start with an accessible compact disclosure");
     check(!await page.locator("#full-plan-details").evaluate(item=>item.open),"Detailed plans stay out of the default overview");
     await verify(page,person);
     await page.evaluate(()=>scrollTo({top:0,behavior:"instant"}));await page.screenshot({path:path.join(output,`${width}-overview.png`)});
@@ -58,9 +58,9 @@ try {
       const left=document.querySelector(".baseline-context").getBoundingClientRect(),right=rect("scenario-workspace"),result=rect("comparison"),next=rect("next-step"),mini=document.querySelector(".mobile-baseline").getBoundingClientRect();
       return {columns:left.right<=right.left,nextStepGap:next.top-result.bottom,nextStepHeight:next.height,mobileBaselineVisible:mini.height>0,pageOverflow:document.documentElement.scrollWidth>innerWidth};
     });
-    check(geometry.columns===(width>1000),"Responsive layout uses two columns only when there is readable space");
+    check(geometry.columns===(width>1100),"Responsive layout uses two columns only when there is readable space");
     check(geometry.nextStepGap>=0&&geometry.nextStepGap<24,"Next step immediately follows the outcome and its concise explanation");
-    check(geometry.mobileBaselineVisible===(width<=1000)&&!geometry.pageOverflow,"Mobile keeps baseline context without horizontal page overflow");
+    check(geometry.mobileBaselineVisible===(width<=1100)&&!geometry.pageOverflow,"Mobile keeps baseline context without horizontal page overflow");
     measurements.push({width,height,...geometry});
     await page.locator("#ei-rate-number").fill("80");await verify(page,person,{job_loss:true,ei_rate:.8});
     await page.locator("#higher-bills").check();await page.locator("#bill-rate").fill("50");
@@ -69,7 +69,7 @@ try {
     await page.locator("#emergency-repair").check();await page.locator("#repair-cost").fill(String(person.buffer+1));
     await verify(page,person,{job_loss:true,ei_rate:.8,higher_bills:true,bill_increase_rate:.5,emergency_repair:true,repair_cost:person.buffer+1});
     await page.locator("#next-step").evaluate(item=>item.scrollIntoView({block:"center",behavior:"instant"}));
-    if(width>1000)check(await page.locator("#monthly-chart").evaluate(item=>{const r=item.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}),"Recorded cash-flow chart remains visible while reviewing the next step");
+    if(width>1100)check(await page.locator("#monthly-chart").evaluate(item=>{const r=item.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}),"Recorded cash-flow chart remains visible while reviewing the next step");
     else check(await page.locator(".mobile-baseline").evaluate(item=>{const r=item.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}),"Mobile baseline stays visible beside scenario planning activity");
     await page.screenshot({path:path.join(output,`${width}-next-step.png`)});
     await page.locator("#full-plan-details>summary").focus();await page.keyboard.press("Enter");
@@ -81,7 +81,7 @@ try {
     check(await page.locator("#comparison").isHidden()&&await page.locator("#scenario-breakdown").isHidden()&&!await page.locator("#full-plan-details").evaluate(item=>item.open),"Reset restores compact baseline planning and closes detailed panels");
     await page.locator("#emergency-repair").check();await page.locator("#repair-cost").fill("100");
     const nextPerson=profiles.get("77059");await choose(page,nextPerson.account_id);await verify(page,nextPerson);
-    check(await page.locator("#scenario-changes>div").count()===0&&!await page.locator("#emergency-repair").isChecked(),"Switching accounts clears prior changes, assumptions and plan context");
+    check(await page.locator("#comparison-chart>article").count()===0&&!await page.locator("#emergency-repair").isChecked(),"Switching accounts clears prior changes, assumptions and plan context");
     await page.locator('nav a[href="#plan-title"]').click();
     check(await page.locator("#full-plan-details").evaluate(item=>item.open)&&await page.locator("#full-plan-details>summary").evaluate(item=>item===document.activeElement),"Plan navigation reveals and focuses the connected plan without leaving the account");
     await page.locator("#scenario-workspace>summary").focus();await page.keyboard.press("Enter");
@@ -92,7 +92,7 @@ try {
   await page.goto(base);await page.waitForFunction(()=>!document.getElementById("lookup-button").disabled);
   for(const person of [people.find(p=>p.buffer<0),people.find(p=>p.household_bills===0),people.find(p=>p.spending>p.income),people.find(p=>p.buffer>p.spending*3&&p.income>p.spending)].filter(Boolean)) {await choose(page,person.account_id);await verify(page,person);}
   await choose(page,"39859");
-  const feedback=await page.evaluate(()=>{document.getElementById("job-loss").click();return {next:document.getElementById("next-step-message").classList.contains("ripple-impact"),changed:document.querySelectorAll("#scenario-changes .ripple-impact:not([hidden])").length};});
+  const feedback=await page.evaluate(()=>{document.getElementById("job-loss").click();return {next:document.getElementById("next-step-message").classList.contains("ripple-impact"),changed:document.querySelectorAll("#comparison-chart .ripple-impact").length};});
   check(feedback.next&&feedback.changed>0,"Real shock input connects affected values, runway and next-step emphasis");
   await page.emulateMedia({reducedMotion:"reduce"});
   await page.waitForFunction(()=>matchMedia("(prefers-reduced-motion: reduce)").matches&&!document.querySelector(".shock-wave,.ripple-impact"));

@@ -7,7 +7,7 @@
   --page: #f7f7f9;
   --brand-soft: #eeedff;
   --baseline-soft: #c7c5ff;
-  --accent: #AED904;
+  --accent: #C2EE14;
   --accent-soft: #f0f7d4;
   --accent-ink: #303b0b;
   --accent-edge: #647d02;
@@ -106,7 +106,7 @@ label { display: block; font-weight: 550; }
 .in { background: var(--brand); }
 .after { background: var(--accent); border-color: var(--accent-edge); }
 .out { background: var(--accent); border-color: var(--accent-edge); }
-.before { background: var(--baseline-soft); }
+.before { background: var(--brand); }
 .chart-viewport { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
 .chart-svg { display: block; width: 100%; min-width: 320px; height: var(--chart-height,226px); overflow: visible; }
 #monthly-chart { --chart-height: 260px; height: var(--chart-height); }
@@ -121,7 +121,7 @@ label { display: block; font-weight: 550; }
 .bar-in { fill: var(--brand); }
 .bar-after { fill: var(--accent); stroke: var(--accent-edge); stroke-width: 1; }
 .bar-out { fill: var(--accent); stroke: var(--accent-edge); stroke-width: 1.25; }
-.bar-before { fill: var(--baseline-soft); stroke: var(--brand); stroke-width: 1; }
+.bar-before { fill: var(--brand); stroke: var(--brand); stroke-width: 1; }
 .bar-track { fill: #ebebf0; }
 .chart-hit { fill: transparent; }
 .chart-point { cursor: help; }
@@ -512,4 +512,80 @@ nav a[aria-current=location]:after { content: ""; position: absolute; bottom: 2p
 }
 @media(prefers-reduced-motion:reduce) {
   .water-sheen { animation: none !important; opacity: 0 !important; }
+}
+
+/* Personal account context and visible comparisons share the available desktop width. */
+main { max-width: 1488px; padding-left: 24px; padding-right: 24px; }
+.topbar { max-width: 1488px; padding-left: 24px; padding-right: 24px; }
+footer { max-width: 1440px; margin-left: 24px; margin-right: 24px; }
+.financial-workspace { grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 24px; margin: 0; padding: 0; border: 0; }
+#overview { min-width: 0; }
+#overview>.section-heading { align-items: start; gap: 12px; }
+#overview h2 { font-size: 24px; }
+#overview>.section-heading .account-context { display: block; }
+.account-context p { max-width: 240px; }
+.baseline-context .baseline { border-top: 1px solid var(--line); margin-top: 14px; padding: 10px 0; }
+.baseline-context .chart-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.overview-actions { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 0 16px; border-top: 1px solid var(--line); margin-top: 8px; }
+.overview-actions .explore-change { order: 2; margin: 0; }
+.overview-actions .financial-details { order: 1; padding: 0; border: 0; }
+.overview-actions .financial-details[open] { flex-basis: 100%; }
+.scenario-workspace { position: relative; padding: 18px; border: 0; border-radius: 14px; background: #fff; }
+.scenario-workspace .scenario-parameters { gap: 12px; }
+.scenario-workspace .shock-assumption { padding-top: 10px; }
+.scenario-workspace .shock-assumption label { margin-bottom: 4px; }
+.scenario-workspace .comparison { margin-top: 12px; }
+.scenario-workspace .outcome { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 12px; padding: 10px 12px; }
+.outcome>div { display: contents; }
+.outcome h3 { grid-column: 1; grid-row: 1; font-size: 16px; margin: 0; }
+.scenario-workspace .runway-value { grid-column: 2; grid-row: 1/3; align-self: center; font-size: 28px; }
+.runway-baseline { grid-column: 1; grid-row: 2; font-size: 14px; margin: 0; color: var(--muted); }
+.scenario-workspace .runway-note { grid-column: 1/-1; margin: 2px 0 0; }
+.scenario-workspace .comparison-scale { font-size: 14px; margin: 10px 0 2px; }
+.scenario-workspace .comparison-metric { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 4px 18px; padding: 8px 0 8px 10px; }
+.scenario-workspace .comparison-metric h4 { grid-column: 1; grid-row: 1; font-size: 16px; line-height: 1.4; }
+.scenario-workspace .comparison-values { display: contents; }
+.comparison-before { grid-column: 1; grid-row: 2; }
+.comparison-after { grid-column: 2; grid-row: 2; }
+.scenario-workspace .comparison-before, .scenario-workspace .comparison-after { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 2px 8px; align-items: baseline; }
+.scenario-workspace .comparison-values dt { font-size: 14px; margin: 0; }
+.scenario-workspace .comparison-values dd { font-size: 18px; line-height: 1.4; text-align: right; }
+.scenario-workspace .pair-bar { grid-column: 1/-1; height: 16px; margin: 0; }
+.scenario-workspace .comparison-change { grid-column: 2; grid-row: 1; justify-self: end; display: block; }
+.scenario-workspace .comparison-change dt, .scenario-workspace .change-direction { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+.scenario-workspace .comparison-change dd { display: block; font-size: 16px; line-height: 1.4; color: var(--accent-ink); background: var(--accent); border-radius: 4px; padding: 0 6px; box-shadow: none; }
+.scenario-workspace .is-unchanged .comparison-change dd { color: var(--muted); background: none; }
+.scenario-workspace .is-changed .comparison-change dd { color: var(--accent-ink); box-shadow: none; }
+.scenario-workspace #scenario-insight { margin: 10px 0 12px; }
+.next-step { padding-top: 10px; }
+.next-step-heading { margin-bottom: 4px; }
+.secondary-scroll { min-width: 0; }
+@media(min-width:1101px) {
+  .metrics { gap: 16px; }
+  .metric { padding-right: 16px; }
+  .metric strong { font-size: clamp(28px,2.1vw,34px); }
+  .metric-heading { min-height: 44px; }
+  .buffer-context strong, .buffer-context span { font-size: 16px; }
+  .scenario-toolbar { height: 0; margin: 0; }
+  .scenario-toolbar>span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  .scenario-toolbar #reset-scenario { position: absolute; top: 14px; right: 52px; }
+  .secondary-scroll { max-height: min(340px,45dvh); overflow-y: auto; overscroll-behavior-y: contain; padding-right: 12px; scrollbar-gutter: stable; }
+}
+@media(max-width:1100px) {
+  .financial-workspace { grid-template-columns: 1fr; gap: 16px; }
+  .baseline-context { position: static; }
+  .scenario-workspace { padding: 18px; }
+  .mobile-baseline { display: block; position: sticky; top: 0; z-index: 3; background: #fff; padding: 8px 0; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .secondary-scroll { max-height: none; overflow-y: visible; }
+}
+@media(max-width:700px) {
+  main { padding-left: 16px; padding-right: 16px; }
+  .topbar { padding-left: 16px; padding-right: 16px; }
+  .scenario-workspace { padding: 16px; }
+  #overview>.section-heading .account-context { text-align: left; }
+  .scenario-workspace .outcome { display: block; }
+  .scenario-workspace .runway-value { margin: 4px 0 6px; }
+  .scenario-workspace .comparison-before, .scenario-workspace .comparison-after { display: block; }
+  .scenario-workspace .comparison-values dd { text-align: left; }
+  .scenario-workspace .comparison-change dd { text-align: right; }
 }

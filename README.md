@@ -197,17 +197,19 @@ personalized advice or additions to the official judging calculations.
 ## Planning and storytelling methodology
 
 The overview is the primary experience in one connected account workspace:
-**See → Discover → Explore → Prepare**. Three historical summary metrics lead.
-Below them, desktop screens place recorded cash flow and its account-specific
-insight beside scenario controls, runway and the next step. The chart column
-stays visible while reviewing scenario results; expanding historical details
+**See → Discover → Explore → Prepare**. The desktop workspace uses up to 1440px
+of content width with modest side gutters. The left overview contains all three
+historical summary metrics, baseline runway, recorded cash flow and one personal
+insight. The right panel contains scenario controls, runway, immediate comparison
+bars and the next step. The overview stays visible while reviewing results;
+expanding historical details
 returns it to normal document flow. The layout uses natural content height.
 Historical records and hypothetical results remain explicitly distinct.
 
 **Explore a Change** opens the scenario panel and focuses a working control.
 It never interprets historical patterns as a specific event or selects a shock.
 The action only scrolls enough to reveal an off-screen target. On screens up to
-1000px, the scenario panel starts collapsed; a compact, sticky historical
+1100px, the scenario panel starts collapsed; a compact, sticky historical
 baseline inside the open panel preserves the original amounts during exploration.
 All navigation actions reveal their target disclosure and support keyboard use.
 
@@ -222,16 +224,18 @@ A met savings target does not hide an ongoing monthly gap. Invalid inputs show
 an unavailable state instead of outdated guidance. **View Full Plan** reveals
 Goal Plan and Backup Plan in the same workspace; their individual disclosures
 retain the full figures and steps. The summary and full plan update together.
-A single **About the
-Data & Calculations** disclosure collects source information, formulas,
-assumptions, limitations and the verified research method. No financial or
+A single **About the Data & Calculations** disclosure collects source information,
+formulas, assumptions, limitations and a link to the separate research report.
+No financial or
 planning rules changed in this visual refinement. Five-second comprehension is
 a design goal; automated layout checks are not a usability study.
 
-Affected metrics show a compact **Historical baseline → Hypothetical scenario**
-comparison with explicit signed differences. **View Before/After Details**
-reveals all four money-in, spending, buffer and shortfall comparisons, bars and
-the detailed table. Each metric's pair shares a scale; scales differ between
+Affected metrics show **Before / After** amounts, two horizontal bars and explicit
+signed differences immediately, without opening a disclosure. Job loss emphasizes
+money in and shortfall; higher bills emphasizes spending and shortfall; repair
+emphasizes the buffer. Combined shocks show each affected metric once.
+**Unchanged Values & Scenario Details** keeps other amounts and the full table
+available on demand. Each metric's pair shares a scale; scales differ between
 metrics, as the visible label explains. Zero/negative values use a real zero
 origin. This comparison reflows on mobile without horizontal
 scrolling. It does not plot the no-shortfall judging label as a duration.
@@ -242,8 +246,9 @@ the displayed amounts, as the comparison and its detail disclosure explain.
 With no selected shocks, a compact invitation replaces the identical-value
 chart; financial plans still use the baseline. Selected parameters appear on
 demand, and income-replacement slider and numeric entry stay synchronized.
-One primary insight explains the selected assumptions and actual monetary
-effects; its supporting explanation, combined contributions and full
+One primary insight connects the current buffer and monthly shortfall to runway,
+or explains the official zero-buffer/no-shortfall precedence. The original shock
+cause explanation, supporting explanation, combined contributions and full
 numbers remain available under **View scenario details**. Zero recorded bills
 are described as a modeling limitation, not evidence of no living expenses.
 Reset, account switching and invalid input clear obsolete results. Comparison
@@ -252,10 +257,18 @@ state. Updating an assumption does not auto-scroll. Optional, short ripple
 feedback links a changed control with affected metrics, runway and the next
 step. Calculations and plan updates are synchronous; motion is optional.
 
+Full plans and secondary comparison details are mutually exclusive disclosures.
+Their labeled, keyboard-focusable content scrolls independently only on desktop
+when it exceeds 340px (or 45% of viewport height). Primary scenario controls and
+results stay outside these scroll regions. Shorter details do not get a forced
+scrollbar. Tablet and mobile remove the vertical limit and extra tab stop,
+retaining natural page flow. No primary dashboard content is clipped to a fixed
+viewport.
+
 ## Ripple identity and connected discoveries
 
 The interface uses **#3D38F5** for the brand, primary buttons, active navigation,
-major headings, historical values and Money In. **#AED904** distinguishes
+major headings, historical values and Money In. **#C2EE14** distinguishes
 Money Out, After bars, changed-amount badges and scenario outcome accents.
 Neutral surfaces, dark body text and gray dividers keep the layout restrained.
 Lime marks a category or modeled change, not financial improvement or safety.
@@ -272,7 +285,9 @@ The buffer context is the descriptive ratio **B / S**, shown as a spending
 equivalent, not official runway or total savings. Non-positive balances and
 missing/zero spending do not produce a fabricated positive equivalent.
 
-Three descriptive findings connect the overview, shock and research sections:
+Three verified findings inform the design and are retained for the Datathon
+presentation and case study in [RESEARCH.md](RESEARCH.md). They are not displayed
+as population statistics on the customer dashboard:
 
 - Of **3,309** accounts with typical inflows strictly above typical spending,
   **3,299** have at least one complete recorded month with money out above
@@ -288,9 +303,10 @@ Three descriptive findings connect the overview, shock and research sections:
   precedence. No-shortfall is a category, never a 120-month chart duration.
 
 Python independently checked these counts and existing buffer medians against
-the committed official assets and preserved engine. Browser aggregation is
-cached, uses the already-required assets and adds no data downloads. Missing
-observations and unavailable scenarios remain explicit in the method disclosure.
+the committed official assets and preserved engine. The underlying research
+helpers and tests remain intact; the customer app no longer runs population
+aggregation or renders research charts. Missing observations, cohort selection
+and unavailable scenarios remain explicit in the research report.
 
 Selecting or clearing a shock triggers a falling drop and two expanding brand-color
 ellipses beside that control. Changed comparison rows and, when changed, the
@@ -325,7 +341,7 @@ data, highlights and tooltips are cleared before loading another account.
 Twelve-month charts scroll horizontally on narrow screens without widening
 the page. Compact header, lookup and card spacing keep the primary overview
 together; secondary details remain expandable and text stays readable. In
-the connected layout, original metrics stay above both columns and detailed
+the connected layout, original metrics remain in the left overview and detailed
 plans no longer occupy a separate section below the simulator. No fixed section
 height or clipped content is used.
 
@@ -344,7 +360,8 @@ Backup steps show the numerical monthly gap, any negative buffer and one-time
 repair deduction. They do not invent reducible expenses, EI eligibility or
 borrowing capacity. All rules are deterministic and run locally in the browser.
 
-**What We Discovered** uses all 4,500 valid account summaries. The median typical
+The preserved **What We Discovered** research uses all 4,500 valid account summaries.
+It is documented in RESEARCH.md rather than shown in the customer UI. The median typical
 monthly money in is CAD 7,568.2625. An inclusive ±5% band contains 166 accounts;
 116 have typical money in covering typical spending and 50 (30.1%) have spending
 above money in. The groups' median estimated buffers are CAD 30,434.58583333333
@@ -408,6 +425,7 @@ RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/chart-layout.mjs
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/connected-workspace.mjs
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/brand-motion.mjs
+RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/personal-dashboard.mjs
 ```
 
 For example, `npm install --prefix /tmp/ripple-browser-qa --no-save --ignore-scripts playwright`
@@ -430,7 +448,7 @@ checks settled-input feedback, reset and reduced motion. Screenshots and
 measurement reports go to the temporary directory, not the public site.
 
 The connected-workspace suite exercises the complete account → insight → shock
-→ next-step → full-plan journey at 1440, 1366, 768, 375 and 320px. It verifies
+→ next-step → full-plan journey at 1536, 1440, 1366, 768, 375 and 320px. It verifies
 unchanged baseline amounts, scenario-dependent plans, adjacent outcome/next-step
 geometry, visible desktop chart/mobile baseline context, keyboard disclosures,
 account switching, reset, invalid inputs, negative buffers and reduced motion.
@@ -441,6 +459,12 @@ unchanged progress amounts and reduced motion at desktop and mobile widths.
 It saves real bar/progress interaction frames and contrast measurements beside
 the other temporary QA artifacts. The complete financial and connected-journey
 checks remain required for brand changes.
+
+The personal-dashboard suite verifies 1440×900 and 1536×864 desktop layouts,
+tablet/mobile flow, readable twelve-month charts, immediate changed-only bars,
+exact amounts, shared pair scales, obsolete-row removal, baseline runway,
+no-effect states, retained research documentation and keyboard scrolling of
+secondary content without moving the main dashboard.
 
 `verify_web_profiles.py` additionally checks all 54,000 shipped monthly records
 against the original CSV data. All financial profiles and 54,000 shock results

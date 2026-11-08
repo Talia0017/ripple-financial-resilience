@@ -40,7 +40,7 @@ async function validate(page, width, height, window) {
   check(label.includes(money(rows[0][1])) && label.includes(money(rows[0][2])), "Chart contains the selected account's actual cash flows");
   check(await page.locator("#monthly-insights p").textContent() === monthlyDiscovery(profile, rows), "No stale account annotation");
   check(await page.locator('#monthly-chart [data-shortfall="true"]').count() === rows.filter(row => row[1] !== null && row[2] !== null && row[2] > row[1]).length, "No stale shortfall highlights");
-  if (width >= 1300) check(item.essentialHeight <= height && item.baselineHeight <= height && item.columnsSeparated, "Readable baseline context fits beside the scenario workspace without a fixed page height");
+  if (width >= 1300) check(item.width >= 600 && item.columnsSeparated, "Wider baseline chart sits beside the scenario workspace without a fixed page height");
   measurements.push({viewport: `${width}x${height}`, window, recordedMonths: profile.months, ...item});
   return item;
 }

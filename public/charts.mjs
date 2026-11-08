@@ -92,21 +92,28 @@ export function renderProgressFlow(container, progress) {
   container.replaceChildren(svg);
 }
 
-export function renderComparisonChart(container, before, after) {
-  const rows = comparisonMetrics(before, after);
+export function renderComparisonChart(container, before, after, visibility = "all") {
+  const rows = comparisonMetrics(before, after).filter(row => visibility === "all" || row.changed === (visibility === "changed"));
+  const keys = new Set(rows.map(row => row.key));
+  for (const article of [...container.children]) if (!keys.has(article.dataset.metric)) article.remove();
   const html = (tag, text, className) => {
     const item = document.createElement(tag);
     if (text !== undefined) item.textContent = text;
     if (className) item.className = className;
     return item;
   };
-  for (const row of rows) {
+  for (const [index, row] of rows.entries()) {
     let article = container.querySelector(`[data-metric="${row.key}"]`);
     if (!article) {
       article = html("article", undefined, "comparison-metric");
       article.dataset.metric = row.key;article.tabIndex = 0;
       article.append(html("h4", row.label), html("dl", undefined, "comparison-values"));
       container.append(article);
+    }
+    if (container.children[index] !== article) {
+      const focused = article.contains(document.activeElement) ? document.activeElement : null;
+      container.insertBefore(article, container.children[index] || null);
+      focused?.focus({preventScroll: true});
     }
     article.classList.toggle("is-changed", row.changed);
     article.classList.toggle("is-unchanged", !row.changed);
