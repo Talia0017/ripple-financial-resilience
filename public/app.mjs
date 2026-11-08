@@ -95,6 +95,7 @@ function rippleFeedback(event, keys, runwayChanged) {
 reducedMotion.addEventListener("change", () => {if (reducedMotion.matches) clearRippleFeedback();});
 
 function message(item, text) {item.textContent = text; item.hidden = !text;}
+const amountForCopy = value => value > 0 && value < .005 ? "less than $0.01" : money(value);
 function clearScenarioOutput() {
   clearRippleFeedback();lastScenario = null;
   $("comparison").hidden = true;
@@ -115,7 +116,6 @@ function clearSelection() {
   selectedHistory = null;
   historyGeneration++;
   $("dashboard").hidden = true;
-  $("empty-state").hidden = false;
   clearScenarioOutput();
 }
 function setControls() {
@@ -159,21 +159,21 @@ function renderPlans(after, active) {
   const plan = savingsPlan(selected, after);
   $("plan-context").textContent = `${active ? "Current scenario" : "Historical baseline"} · Illustrative`;
   let title, text;
-  if (!after) {title = "Next step unavailable";text = "Resolve missing account values or invalid assumptions to see a relevant plan.";}
+  if (!after) {title = "Next step unavailable";text = "Check the account data or scenario inputs.";}
   else if (after.buffer_left <= 0) {
-    title = after.buffer_left < 0 ? `${money(-after.buffer_left)} below zero` : "Restore the estimated buffer";
-    text = "Review available support and adjustable commitments before planning a savings contribution.";
+    title = after.buffer_left < 0 ? `${amountForCopy(-after.buffer_left)} below zero` : "Restore the estimated buffer";
+    text = "Review options to restore the estimated buffer.";
   } else if (after.monthly_shortfall > 0) {
-    title = `Review a ${money(after.monthly_shortfall)} monthly gap`;
-    text = "Review lower spending or additional money in before planning a contribution.";
+    title = `Review a monthly gap of ${amountForCopy(after.monthly_shortfall)}`;
+    text = "";
   } else if (plan?.remaining === 0) {
     title = "Example savings target met";
-    text = `The estimated buffer meets the ${money(plan.goal)} three-month spending target. Confirm what cash is actually accessible.`;
+    text = `Three-month spending target: ${amountForCopy(plan.goal)}.`;
   } else if (plan) {
-    title = `${money(plan.remaining)} to the example savings goal`;
-    text = plan.contribution > 0 ? `Illustration: ${money(plan.contribution)}/month from half the estimated surplus. Review the full plan's assumptions.` : "No positive monthly surplus is available for a modeled contribution. Review cash flow first.";
-  } else {title = "Savings goal unavailable";text = backupPlan(after, active)[0];}
-  $("next-step-title").textContent = title;$("next-step-text").textContent = text;
+    title = `${amountForCopy(plan.remaining)} to the example savings goal`;
+    text = plan.contribution > 0 ? `Example contribution: ${amountForCopy(plan.contribution)}/month.` : "No positive monthly surplus is available for a contribution.";
+  } else {title = "Savings goal unavailable";text = "A positive spending estimate is needed.";}
+  $("next-step-title").textContent = title;message($("next-step-text"), text);
   const host = $("goal-plan-content");
   host.replaceChildren();
   $("goal-progress").hidden = !plan;
@@ -200,6 +200,15 @@ function renderPlans(after, active) {
     if (after.buffer_left < 0) host.append(element("p", "A negative balance contributes zero toward this goal; the below-zero amount remains a separate issue to address.", "fineprint"));
   }
   $("backup-plan").replaceChildren(...(after ? backupPlan(after, active) : ["Scenario data is unavailable. Resolve missing account values or invalid assumptions before using a backup plan."]).map(text => element("li", text)));
+}
+function scenarioAnnotation(before, after, insight) {
+  if (!insight.affected.length) return "No financial amounts changed.";
+  if (after.buffer_left <= 0) return `The estimated buffer is ${after.buffer_left < 0 ? "below zero" : "depleted"}, so modeled runway is zero.`;
+  const limit = after.capped ? " The model caps runway at 120 months." : "";
+  if (after.one_off_costs > 0) return `A one-time repair of ${amountForCopy(after.one_off_costs)} leaves an estimated ${amountForCopy(after.buffer_left)} buffer${after.monthly_shortfall > 0 ? ` against a monthly shortfall of ${amountForCopy(after.monthly_shortfall)}` : ""}.${limit}`;
+  const changes = comparisonMetrics(before, after).filter(row => row.changed && ["income", "spending"].includes(row.key));
+  const causes = changes.map((row, index) => `${row.key === "income" ? "Money in" : index ? "spending" : "Spending"} ${row.delta < 0 ? "falls" : "rises"} by ${amountForCopy(Math.abs(row.delta))}`);
+  return `${causes.join(" and ")}${after.monthly_shortfall > 0 ? `, leaving a monthly shortfall of ${amountForCopy(after.monthly_shortfall)}` : ", with no monthly shortfall"}.${limit}`;
 }
 function updateComparison(event) {
   if (!selected) return;
@@ -241,10 +250,7 @@ function updateComparison(event) {
     $("runway-explanation").textContent = runwayExplanation(after);
     const insight = scenarioInsight(selected, before, after, options);
     $("result-cause").textContent = insight.primary;
-    $("result-explanation").textContent = !insight.affected.length ? "No financial amounts changed; the historical baseline runway still applies under these assumptions."
-      : after.buffer_left <= 0 ? "No positive buffer remains, so the model gives zero runway even if money in covers spending."
-      : after.no_shortfall ? "Money in covers monthly spending under these assumptions; this is not a guaranteed duration."
-      : `${money(after.buffer_left)} of estimated buffer covers a ${money(after.monthly_shortfall)} monthly gap in this model.${after.capped ? " Runway is capped at 120 months." : ""}`;
+    $("result-explanation").textContent = scenarioAnnotation(before, after, insight);
     message($("result-supporting"), insight.supporting);
     $("scenario-insight").dataset.affected = insight.affected.join(" ");
     $("scenario-contributors").replaceChildren(...insight.contributors.map(text => element("li", text)));
@@ -269,7 +275,7 @@ function renderHistory() {
   const rows = selectedHistory.slice(-historyWindow);
   $("history-six").setAttribute("aria-pressed", String(historyWindow === 6));
   $("history-twelve").setAttribute("aria-pressed", String(historyWindow === 12));
-  $("history-status").textContent = `${rows.length} recorded ${rows.length === 1 ? "month" : "months"} · ${monthName(rows[0][0])} – ${monthName(rows.at(-1)[0])}`;
+  $("history-status").textContent = `${rows.length < historyWindow ? `${rows.length} records · ` : ""}${monthName(rows[0][0])} – ${monthName(rows.at(-1)[0])}`;
   renderMonthlyChart($("monthly-chart"), rows, $("monthly-tooltip"));
   const insights = monthlyInsights(rows);
   const observation = element("p", monthlyDiscovery(selected, rows));
@@ -313,7 +319,7 @@ function chooseAccount(accountId) {
   if (!profile) {
     clearSelection();
     $("account-id").setAttribute("aria-invalid", "true");
-    message($("lookup-error"), "Account not found. Choose an ID from the official list, or try Random Account.");
+    message($("lookup-error"), "Demo account not found. Choose an ID from the list or try Random.");
     return;
   }
   selected = profile; selectedHistory = null; historyWindow = 6;
@@ -321,13 +327,13 @@ function chooseAccount(accountId) {
   $("account-id").value = profile.account_id;
   $("account-id").removeAttribute("aria-invalid");
   message($("lookup-error"), "");
-  $("dashboard").hidden = false; $("empty-state").hidden = true;
+  $("dashboard").hidden = false;
   $("selected-account").textContent = `Account ${profile.account_id}`;
   $("account-history").textContent = `${profile.months} recorded months · ${profile.first_month} – ${profile.last_month}`;
   const definitions = [
-    ["Typical Monthly Money In", "income", "All money entering the account, not necessarily salary."],
-    ["Typical Monthly Spending", "spending", "Money going out, including loan payments."],
-    ["Estimated Cash Buffer", "buffer", "Historical average balance estimate, not total savings."],
+    ["Money In", "income", "Median monthly money in across all recorded months. Includes all incoming money, not just salary."],
+    ["Spending", "spending", "Median monthly money out across all recorded months, including loan payments."],
+    ["Estimated Buffer", "buffer", "Average recorded balance over the latest six monthly records, not verified cash you can access. The spending equivalent divides this estimate by typical monthly spending; it ignores money in and is not financial runway or total savings."],
   ];
   $("metrics").replaceChildren(...definitions.map(([label, key, help]) => {
     const card = element("article", undefined, "metric");
@@ -335,14 +341,14 @@ function chooseAccount(accountId) {
     const heading = element("div", undefined, "metric-heading");
     const info = element("details", undefined, "metric-info");
     const trigger = element("summary", "i");
-    trigger.setAttribute("aria-label", `About ${label}`);
+    trigger.setAttribute("aria-label", `What does ${label} mean?`);
     info.append(trigger, element("p", help));
     heading.append(element("p", label, "metric-label"), info);
     card.append(heading, value);
     if (key === "buffer") {
       const equivalent = bufferEquivalent(profile);
       const context = element("p", undefined, "buffer-context");context.id = "buffer-context";
-      context.append(element("strong", !equivalent ? "Equivalent unavailable" : equivalent.positive ? `${equivalent.ratio < .05 ? "< 0.1" : "≈ " + new Intl.NumberFormat("en-CA", {maximumFractionDigits: 1}).format(equivalent.ratio)}× monthly spending` : equivalent.label), element("span", " · not runway"));
+      context.append(element("strong", !equivalent ? "Spending equivalent unavailable" : equivalent.positive ? `${equivalent.ratio < .05 ? "< 0.1" : "≈ " + new Intl.NumberFormat("en-CA", {maximumFractionDigits: 1}).format(equivalent.ratio)} months of typical spending` : equivalent.label));
       card.append(context);
     }
     return card;
@@ -373,13 +379,14 @@ function chooseAccount(accountId) {
   for (const id of ["goal-plan-details", "backup-plan-details"]) $(id).open = true;
   resetScenario();loadHistory();
   $("overview-title").tabIndex = -1;$("overview-title").focus({preventScroll: true});
+  revealAnchor();
 }
 async function loadProfiles() {
   const generation = ++loadGeneration;
   clearSelection();historyPromise = null;
   document.body.classList.add("is-loading");
   $("load-error").hidden = true;
-  $("data-status").textContent = "Loading official accounts…";
+  message($("data-status"), "Loading demo accounts…");
   for (const id of ["account-id", "lookup-button", "random-account"]) $(id).disabled = true;
   try {
     const response = await fetch(new URL("./data/profiles.json", import.meta.url), {cache: "no-cache"});
@@ -389,17 +396,18 @@ async function loadProfiles() {
     profiles = loaded;sourceHashes = payload.dataset.source_sha256;
     $("account-options").replaceChildren(...[...profiles.keys()].map(id => {const option = element("option");option.value = id;return option;}));
     for (const id of ["account-id", "lookup-button", "random-account"]) $(id).disabled = false;
-    $("account-id").placeholder = "Enter or search an Account ID";
-    $("data-status").textContent = `${profiles.size.toLocaleString("en-CA")} official accounts · Ready`;
+    $("account-id").placeholder = "Enter an ID";
+    message($("data-status"), "");
     $("dataset-detail").textContent = `${payload.dataset.monthly_rows.toLocaleString("en-CA")} monthly records and ${payload.dataset.loan_rows.toLocaleString("en-CA")} loan records, covering ${payload.dataset.first_month} to ${payload.dataset.last_month}. All ${profiles.size.toLocaleString("en-CA")} accounts are supported. Amounts are displayed in CAD, following the challenge dataset units; no currency conversion is applied.`;
     document.body.classList.remove("is-loading");
   } catch (error) {
     if (generation !== loadGeneration) return;
     profiles = new Map();$("account-options").replaceChildren();
     document.body.classList.remove("is-loading");
-    $("data-status").textContent = "Account data unavailable";
+    message($("data-status"), "");
     $("load-error").hidden = false;
-    $("load-error-text").textContent = `${error.message} Check your connection and try again. Missing data is never replaced with sample accounts.`;
+    $("load-error-text").textContent = "Demo accounts couldn't load. Check your connection and try again.";
+    $("dataset-detail").textContent = "Dataset details are unavailable until demo accounts load.";
   }
 }
 $("lookup-form").addEventListener("submit", event => {event.preventDefault();chooseAccount($("account-id").value);});
@@ -414,23 +422,22 @@ function revealWorkspace(plan = false) {
   const rect = target.getBoundingClientRect();
   if (rect.top < 0 || rect.bottom > innerHeight) target.scrollIntoView({block: "nearest", behavior: "instant"});
 }
-function setNavigation(id) {
-  for (const link of document.querySelectorAll("nav a")) {
-    if (link.hash === `#${id}`) link.setAttribute("aria-current", "location");else link.removeAttribute("aria-current");
-  }
+function revealData() {
+  $("about-data").open = true;
+  $("about-data").querySelector("summary").focus({preventScroll: true});
+  $("about-data").scrollIntoView({block: "nearest", behavior: "instant"});
 }
-document.addEventListener("focusin", event => {
-  if (event.target.closest("#next-step, #full-plan-details")) setNavigation("plan-title");
-  else if (event.target.closest("#scenario-workspace")) setNavigation("shock-title");
-  else if (event.target.closest("#overview, #lookup-form")) setNavigation("overview");
-});
-for (const link of document.querySelectorAll("nav a")) link.addEventListener("click", () => setNavigation(link.hash.slice(1)));
+function revealAnchor() {
+  if (location.hash === "#about-data") revealData();
+  else if (selected && ["#shock-title", "#plan-title"].includes(location.hash)) revealWorkspace(location.hash === "#plan-title");
+}
+window.addEventListener("hashchange", revealAnchor);
+$("footer-data").addEventListener("click", event => {event.preventDefault();revealData();});
 for (const id of ["before-after-details", "full-plan-details"]) $(id).addEventListener("toggle", () => {
   if ($(id).open) flowWater(null, $(id));
   else for (const [host, finish] of flowTargets) if (host.closest("details:not([open])")) finish();
 });
 $("explore-change").addEventListener("click", () => revealWorkspace());
-for (const link of document.querySelectorAll('a[href="#shock-title"], a[href="#plan-title"]')) link.addEventListener("click", event => {event.preventDefault();revealWorkspace(link.hash === "#plan-title");});
 function syncSecondaryFocus() {for (const region of document.querySelectorAll(".secondary-scroll")) {if (narrowWorkspace.matches) region.removeAttribute("tabindex");else region.tabIndex = 0;}}
 narrowWorkspace.addEventListener("change", () => {if (selected) $("scenario-workspace").open = !narrowWorkspace.matches;syncSecondaryFocus();});
 syncSecondaryFocus();
@@ -446,6 +453,7 @@ $("ei-rate-number").addEventListener("input", event => {
 });
 for (const [id, count] of [["history-six", 6], ["history-twelve", 12]]) $(id).addEventListener("click", () => {historyWindow = count;renderHistory();});
 loadProfiles();
+revealAnchor();
 
 // Observe the visible panel, not the plot that is hidden temporarily during account changes.
 let lastChartWidth = 0;

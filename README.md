@@ -211,12 +211,20 @@ It never interprets historical patterns as a specific event or selects a shock.
 The action only scrolls enough to reveal an off-screen target. On screens up to
 1100px, the scenario panel starts collapsed; a compact, sticky historical
 baseline inside the open panel preserves the original amounts during exploration.
-All navigation actions reveal their target disclosure and support keyboard use.
+The header contains only the Ripple mark and wordmark. Contextual actions and
+retained section anchors reveal the right disclosure and support keyboard use.
+The entry title remains visible, with **Demo Account ID**, **View Account** and
+**Random**. Loading text appears only while data loads; normal operation has no
+permanent readiness counter or introductory instruction block.
 
-The simplified interface uses large primary amounts, one monthly chart insight
-and compact shock selectors. Metric definitions use keyboard-accessible info
+The simplified interface uses large primary amounts labelled **Money In**,
+**Spending** and **Estimated Buffer**, with shared typical-monthly cash-flow
+context and CAD units. One monthly chart insight and compact shock selectors
+retain the existing layout. Metric definitions use keyboard-accessible info
 disclosures. **More Financial Details** holds supporting amounts, baseline
-context and the monthly table. Parameters appear only for selected shocks.
+context, record metadata and the monthly table. The main chart shows its selected
+date range without repeating the active history-window count. Parameters appear
+only for selected shocks.
 Estimated runway and one explanation lead directly to **Your Next Step**. This
 summary uses the existing planning results: restore a depleted buffer, review
 a monthly gap, build toward the example savings goal, or recognize a met target.
@@ -246,8 +254,9 @@ the displayed amounts, as the comparison and its detail disclosure explain.
 With no selected shocks, a compact invitation replaces the identical-value
 chart; financial plans still use the baseline. Selected parameters appear on
 demand, and income-replacement slider and numeric entry stay synchronized.
-One primary insight connects the current buffer and monthly shortfall to runway,
-or explains the official zero-buffer/no-shortfall precedence. The original shock
+One short annotation connects the selected input's actual monetary effect to the
+current shortfall or remaining buffer, with the official zero-buffer precedence.
+Nonzero sub-cent effects are described as less than one cent, not zero. The original shock
 cause explanation, supporting explanation, combined contributions and full
 numbers remain available under **View scenario details**. Zero recorded bills
 are described as a modeling limitation, not evidence of no living expenses.
@@ -267,11 +276,13 @@ viewport.
 
 ## Ripple identity and connected discoveries
 
-The interface uses **#3D38F5** for the brand, primary buttons, active navigation,
+The interface uses **#3D38F5** for the brand, primary buttons,
 major headings, historical values and Money In. **#C2EE14** distinguishes
 Money Out, After bars, changed-amount badges and scenario outcome accents.
 Neutral surfaces, dark body text and gray dividers keep the layout restrained.
-Lime marks a category or modeled change, not financial improvement or safety.
+Selected shock cards use a light-blue **#EAF1FF** fill, blue border and native blue
+checkmark. Lime marks a financial category or modeled change, not the selected
+control or a favorable outcome.
 Lime areas use dark text and visible dark outlines instead of light text on
 white. Browser checks verify text contrast and chart boundary contrast.
 The inline SVG brand mark uses a drop above three open, offset perspective wave
@@ -284,6 +295,15 @@ summaries with actual recent monthly variation.
 The buffer context is the descriptive ratio **B / S**, shown as a spending
 equivalent, not official runway or total savings. Non-positive balances and
 missing/zero spending do not produce a fabricated positive equivalent.
+Its concise label uses months of typical spending; the accessible buffer
+definition explains that it ignores incoming money and is not financial runway
+or verified accessible savings.
+
+The footer credits **Renyin Xu**, retains **Sheridan Datathon 2026 · Tangerine
+Track**, and links to data/limitations, GitHub and the AI-assisted development
+disclosure. The organized About area states: **Uses anonymized Datathon account
+data. Not connected to your bank.** This keeps the main entry concise without
+removing data provenance or financial assumptions.
 
 Three verified findings inform the design and are retained for the Datathon
 presentation and case study in [RESEARCH.md](RESEARCH.md). They are not displayed
@@ -426,6 +446,7 @@ RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/connected-workspace.mjs
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/brand-motion.mjs
 RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/personal-dashboard.mjs
+RIPPLE_BROWSER_TEST_MODULE=file:///tmp/ripple-browser-qa/node_modules/playwright/index.mjs node tests/browser/content-cleanup.mjs
 ```
 
 For example, `npm install --prefix /tmp/ripple-browser-qa --no-save --ignore-scripts playwright`
@@ -454,7 +475,7 @@ geometry, visible desktop chart/mobile baseline context, keyboard disclosures,
 account switching, reset, invalid inputs, negative buffers and reduced motion.
 
 The brand-motion suite checks exact color roles, AA text contrast, lime bar
-boundaries, navigation state, visible clipped water surfaces, finite playback,
+boundaries, contextual focus, visible clipped water surfaces, finite playback,
 unchanged progress amounts and reduced motion at desktop and mobile widths.
 It saves real bar/progress interaction frames and contrast measurements beside
 the other temporary QA artifacts. The complete financial and connected-journey
@@ -465,6 +486,13 @@ tablet/mobile flow, readable twelve-month charts, immediate changed-only bars,
 exact amounts, shared pair scales, obsolete-row removal, baseline runway,
 no-effect states, retained research documentation and keyboard scrolling of
 secondary content without moving the main dashboard.
+
+The content-cleanup suite checks the demo entry and loading-only status,
+accessible definitions, light-blue selection contrast, keyboard/touch controls,
+accurate concise annotations including sub-cent effects, preserved section
+anchors, footer attribution and one-click access to financial transparency.
+These are browser and regression checks, not a study of first-time user
+comprehension; no participant usability results are claimed.
 
 `verify_web_profiles.py` additionally checks all 54,000 shipped monthly records
 against the original CSV data. All financial profiles and 54,000 shock results

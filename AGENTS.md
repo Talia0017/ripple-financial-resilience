@@ -50,7 +50,8 @@ credentials or put tokens into tracked files or command URLs.
   `tests/browser/dashboard.mjs`, `tests/browser/chart-layout.mjs` and
   `tests/browser/connected-workspace.mjs`, plus `tests/browser/brand-motion.mjs`
   for color or animation changes and `tests/browser/personal-dashboard.mjs`
-  for the personal workspace; see README
+  for the personal workspace. Use `tests/browser/content-cleanup.mjs` for entry,
+  copy, disclosure and selected-card changes; see README
   for setup. Check account switching, 6/12-month geometry and mobile overflow.
 - Measure charts after revealing their content, using the visible cash-flow
   panel. Preserve explicit monthly plot heights (260px desktop, 240px mobile)
@@ -59,6 +60,12 @@ credentials or put tokens into tracked files or command URLs.
   simulated states and differences. Use neutral surfaces, dark body text and
   dark outlines on lime chart bars. Lime does not mean a favorable outcome.
   The SVG mark uses a drop and three open perspective waves.
+- Selected shock cards use light blue #EAF1FF with the blue border and native
+  blue checkmark. Keep lime for financial comparisons, not the selected fill.
+- The header is logo-only. Keep the demo account entry concise; show loading
+  and error messages only when relevant. Preserve trust text in the accessible
+  About area and footer, metric definitions in native disclosures, and retained
+  section anchors. Record metadata and plan assumptions belong in details.
 - Shock feedback lasts 700ms; continuous inputs get one smaller ripple after
   180ms idle. Filled After bars and savings progress can show a finite 1200ms
   water surface on relevant changes or disclosure. Never loop it, animate a

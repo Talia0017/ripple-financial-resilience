@@ -37,7 +37,7 @@ async function context(viewport, expectedHttpErrors = false, reducedMotion = "no
 }
 async function ready(page) {
   await page.goto(base);
-  await page.waitForFunction(() => document.getElementById("data-status").textContent.includes("Ready"));
+  await page.waitForFunction(() => !document.getElementById("lookup-button").disabled);
 }
 async function choose(page, profile) {
   await page.locator("#account-id").fill(profile.account_id);
@@ -98,7 +98,7 @@ try {
   check(await page.locator("#monthly-insights p").first().textContent() === monthlyDiscovery(profile, actual), "Annotation matches summary and exact observed months");
   const shortfallCount = actual.filter(row => row[1] !== null && row[2] !== null && row[2] > row[1]).length;
   check(await page.locator('#monthly-chart [data-shortfall="true"]').count() === shortfallCount, "Shortfall months have non-color-only markers");
-  check((await page.locator("#buffer-context").textContent()).toLowerCase().includes("not runway"), "Buffer equivalent is not labelled as financial runway");
+  check((await page.locator('.metric-info:has(summary[aria-label="What does Estimated Buffer mean?"]) p').textContent()).includes("not financial runway") && (await page.locator("#buffer-context").textContent()).includes("typical spending"), "Concise spending equivalent keeps its runway distinction in an accessible definition");
   check((await readFile(new URL("../../RESEARCH.md", import.meta.url), "utf8")).includes("3,299"), "Verified recent-month findings are preserved outside the personal UI");
   await page.locator("#monthly-chart .chart-point").first().focus();
   check((await page.locator("#monthly-tooltip").textContent()).includes(money(actual[0][1])), "Keyboard chart tooltip");
@@ -231,7 +231,7 @@ try {
   await loading.page.goto(base);await loading.page.locator("#load-error").waitFor();
   check(await loading.page.locator("#lookup-button").isDisabled(), "Profile failure disables lookup");
   await loading.ctx.unroute("**/data/profiles.json");await loading.page.locator("#retry-load").click();
-  await loading.page.waitForFunction(() => document.getElementById("data-status").textContent.includes("Ready"));
+  await loading.page.waitForFunction(() => !document.getElementById("lookup-button").disabled);
   check(await loading.page.locator("#lookup-button").isEnabled(), "Profile retry recovers");
   await loading.ctx.close();
   // Explicit browser-only missing-value fixtures; public account files stay unchanged.

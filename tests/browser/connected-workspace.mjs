@@ -82,8 +82,9 @@ try {
     await page.locator("#emergency-repair").check();await page.locator("#repair-cost").fill("100");
     const nextPerson=profiles.get("77059");await choose(page,nextPerson.account_id);await verify(page,nextPerson);
     check(await page.locator("#comparison-chart>article").count()===0&&!await page.locator("#emergency-repair").isChecked(),"Switching accounts clears prior changes, assumptions and plan context");
-    await page.locator('nav a[href="#plan-title"]').click();
-    check(await page.locator("#full-plan-details").evaluate(item=>item.open)&&await page.locator("#full-plan-details>summary").evaluate(item=>item===document.activeElement),"Plan navigation reveals and focuses the connected plan without leaving the account");
+    await page.locator("#explore-change").click();
+    await page.locator("#full-plan-details>summary").focus();await page.keyboard.press("Enter");
+    check(await page.locator("#full-plan-details").evaluate(item=>item.open)&&await page.locator("#full-plan-details>summary").evaluate(item=>item===document.activeElement),"The contextual disclosure reveals and focuses the plan without header navigation");
     await page.locator("#scenario-workspace>summary").focus();await page.keyboard.press("Enter");
     check(!await page.locator("#scenario-workspace").evaluate(item=>item.open),"Keyboard can collapse the scenario panel");
     await ctx.close();
