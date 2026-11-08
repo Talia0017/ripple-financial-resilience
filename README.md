@@ -279,8 +279,11 @@ viewport.
 The interface uses **#3D38F5** for the brand, primary buttons,
 major headings and Money Out. **#C2EE14** identifies Money In and small
 After-state accents. Cash-flow legends match their corresponding bars.
-Incoming metric text uses the darker green **#647D02** for readable contrast.
-Signed changes use neutral badges so a worsening gap is not presented as a positive result.
+The main Money In value uses the normal dark text color. Change badges keep a
+light gray background: **+** values use readable green **#4D6500**, **−** values
+use brand blue, and zero remains neutral, including in the detailed comparison.
+These colors indicate the arithmetic sign, not whether a change is beneficial;
+for example, a spending increase still carries a green plus sign.
 Neutral surfaces, dark body text and gray dividers keep the layout restrained.
 Selected shock cards use a light-blue **#EAF1FF** fill, blue border and native blue
 checkmark. After-state green identifies the modeled comparison, not a guarantee
@@ -482,7 +485,9 @@ account switching, reset, invalid inputs, negative buffers and reduced motion.
 The brand-motion suite checks green incoming/blue outgoing series and legends,
 AA text contrast, lime bar boundaries, contextual focus, control-contained ripples,
 visible clipped water surfaces, finite playback and fallback cleanup, unchanged
-progress amounts and reduced motion. It also measures footer alignment and
+progress amounts and reduced motion. It checks signed badge colors, zero and
+sub-cent changes across the primary and detailed comparisons, plus dark Money In
+metric text. It also measures footer alignment and
 responsive stacking from 320px to 1920px.
 It saves real bar/progress interaction frames and contrast measurements beside
 the other temporary QA artifacts. The complete financial and connected-journey

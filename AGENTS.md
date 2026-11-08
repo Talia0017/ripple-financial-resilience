@@ -58,7 +58,10 @@ credentials or put tokens into tracked files or command URLs.
   and matching SVG coordinates; never magnify a hidden plot's fallback width.
 - Brand: #3D38F5 for identity and Money Out; #C2EE14 for Money In and small
   After-state or positive accents. Match cash-flow legends to the series.
-  Use neutral surfaces, neutral signed-change badges, dark body text and dark
+  Keep the main Money In value dark. Change badges retain light gray surfaces:
+  positive amounts use readable green #4D6500, negative amounts use blue, and
+  zero stays neutral. These colors indicate arithmetic sign, not financial benefit.
+  Use neutral surfaces, dark body text and dark
   outlines on lime chart bars. After-state green does not guarantee a favorable outcome.
   The SVG mark uses a drop and three open perspective waves.
 - Selected shock cards use light blue #EAF1FF with the blue border and native

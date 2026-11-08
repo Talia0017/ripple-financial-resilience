@@ -11,6 +11,21 @@ const output=process.env.RIPPLE_SCREENSHOTS||path.join(tmpdir(),"ripple-brand-mo
 const profiles=decodeProfiles(JSON.parse(await readFile(new URL("../../public/data/profiles.json",import.meta.url))));
 const browser=await chromium.launch({channel:"chrome",headless:true});let checks=0;const errors=[],reports=[];
 const check=(value,message)=>{assert.ok(value,message);checks++;};
+async function checkSignedChanges(page){
+ const badges=await page.locator(".comparison-change dd").evaluateAll(items=>items.map(item=>{
+  const style=getComputedStyle(item),text=item.firstChild.textContent;
+  const luminance=value=>value.match(/[\d.]+/g).slice(0,3).map(Number).map(c=>{const n=c/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;}).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+  const [lo,hi]=[luminance(style.color),luminance(style.backgroundColor)].sort((a,b)=>a-b);
+  return {text,color:style.color,background:style.backgroundColor,contrast:(hi+.05)/(lo+.05)};
+ }));
+ check(badges.length===4,"Primary and detailed comparisons retain every metric");
+ for(const badge of badges){
+  const expected=badge.text.startsWith("+")?"rgb(77, 101, 0)":badge.text.startsWith("−")?"rgb(61, 56, 245)":"rgb(96, 97, 110)";
+  check(badge.color===expected&&badge.background==="rgb(241, 241, 246)","Every comparison badge uses its displayed arithmetic sign on a light gray background");
+  check(badge.contrast>=4.5,"Signed and zero change text meets AA contrast on the badge background");
+ }
+ return badges;
+}
 async function checkFooter(page,width){
  const layout=await page.locator("footer").evaluate(footer=>{
   const rect=item=>{const r=item.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,center:(r.top+r.bottom)/2};};
@@ -39,6 +54,7 @@ try{
    return {brand:root.getPropertyValue("--brand").trim(),accent:root.getPropertyValue("--accent").trim(),in:style(".bar-in").fill,out:style(".bar-out").fill,legendIn:style(".key.in").backgroundColor,legendOut:style(".key.out").backgroundColor,button:contrast(style("#lookup-button").color,style("#lookup-button").backgroundColor),body:contrast(root.color,root.backgroundColor),muted:contrast(style(".metrics-context").color,root.backgroundColor),heading:contrast(style("h2").color,white),incoming:contrast(style('.metric strong[data-metric="income"]').color,white),limeEdge:contrast(style(".bar-in").stroke,white),limeInk:contrast(root.getPropertyValue("--accent-ink"),root.getPropertyValue("--accent"))};
   });
   check(palette.brand==="#3D38F5"&&palette.accent==="#C2EE14","Brand tokens use the requested exact colors");
+  check(await page.locator('.metric strong[data-metric="income"]').evaluate(item=>getComputedStyle(item).color===getComputedStyle(document.documentElement).color),"The main Money In amount uses the normal dark text color");
   check(palette.in==="rgb(194, 238, 20)"&&palette.out==="rgb(61, 56, 245)"&&palette.legendIn===palette.in&&palette.legendOut===palette.out,"Cash-flow bars and legends consistently use green for Money In and blue for Money Out");
   for(const key of ["button","body","muted","heading","incoming","limeInk"])check(palette[key]>=4.5,`${key} text meets WCAG AA contrast`);
   check(palette.limeEdge>=3,"Lime graphics have a visible boundary against the white plot");reports.push({width,...palette});
@@ -52,7 +68,9 @@ try{
   }),"Ripple stays clipped inside the selected control instead of floating below it");
   check(await page.locator("#after-runway").textContent()===runwayHeading(simulate(profiles.get("39859"),{job_loss:true})),"Scenario updates immediately using the preserved financial engine");
   const delta=await page.locator(".is-changed .comparison-change dd").first().evaluate(item=>({color:getComputedStyle(item).color,background:getComputedStyle(item).backgroundColor}));
-  check(delta.color==="rgb(36, 38, 51)"&&delta.background==="rgb(241, 241, 246)","Signed changes use neutral badges rather than imply every change is positive");
+  check(delta.color==="rgb(61, 56, 245)"&&delta.background==="rgb(241, 241, 246)","The negative income change uses blue text on the light gray badge");
+  const signs=await checkSignedChanges(page);
+  check(signs.some(item=>item.text.startsWith("+"))&&signs.some(item=>item.text.startsWith("−"))&&signs.some(item=>item.text==="$0.00"),"Positive, negative and unchanged amounts are covered together");
   check(await page.locator(".ripple-impact").evaluateAll(items=>items.every(item=>getComputedStyle(item).backgroundColor!=="rgb(240, 247, 212)")),"Affected results never flash large green background fills");
   await page.waitForFunction(()=>document.querySelector(".comparison-after .pair-bar.is-flowing"));
   check(await page.locator(".comparison-before .water-sheen").count()===0,"Original values never acquire simulated water motion");
@@ -106,6 +124,14 @@ try{
   await page.waitForFunction(()=>!document.querySelector(".shock-wave,.ripple-source,.ripple-impact,.is-flowing"),null,{timeout:3000});
   check(await page.locator(".shock-wave,.ripple-source").count()===0,"Fallback cleanup removes feedback even if animation events never fire");
   await page.evaluate(index=>[...document.styleSheets].find(item=>item.href?.endsWith("/styles.css")).deleteRule(index),suppressionIndex);
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.locator("#higher-bills").check();await page.locator("#emergency-repair").check();
+  await checkSignedChanges(page);
+  await page.locator("#before-after-details>summary").click();
+  await checkSignedChanges(page);
+  await page.locator("#reset-scenario").click();await page.locator("#emergency-repair").check();await page.locator("#repair-cost").fill("0.001");
+  const tiny=await checkSignedChanges(page);
+  check(tiny.some(item=>item.text==="−< $0.01"&&item.color==="rgb(61, 56, 245)"),"Sub-cent decreases retain their blue minus sign instead of becoming a neutral zero");
   await checkFooter(page,width);
   await ctx.close();
  }

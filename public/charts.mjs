@@ -135,6 +135,7 @@ export function renderComparisonChart(container, before, after, visibility = "al
     }
     const change = html("div", undefined, "comparison-change");
     const delta = html("dd", row.change);delta.dataset.value = String(row.delta);
+    delta.dataset.sign = row.delta > 0 ? "positive" : row.delta < 0 ? "negative" : "zero";
     delta.append(html("span", row.direction, "change-direction"));
     change.append(html("dt", "Change"), delta);content.append(change);
     // Keep the row itself stable for keyboard focus and short feedback animations.
